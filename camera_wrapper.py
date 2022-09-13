@@ -15,8 +15,8 @@ class Camera(ABC):
     address: Camera IP address
     '''
     @abstractmethod
-    def __init__(self, address):
-        self.address = address
+    def __init__(self, serial_number):
+        self.serial_number = serial_number
     
     @property
     def pixel_format(self):

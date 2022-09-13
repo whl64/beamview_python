@@ -2,25 +2,28 @@ import camera_wrapper as cw
 import pypylon.pylon as pylon
 
 class Basler_Camera(cw.Camera):
-    def __init__(self, address):
-        super().__init__(address)
+    def __init__(self, serial_number):
+        super().__init__(serial_number)
         tlf = pylon.TlFactory.GetInstance()
         di = pylon.DeviceInfo()
-        di.SetAddress(address)
+        di.SetSerialNumber(serial_number)
         device = tlf.EnumerateDevices([di, ])[0]
         self.name = device.GetUserDefinedName()
         self.model = device.GetModelName()
+        self.address = device.GetAddress()
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
         self.cam.Open()
         
-        self.cam.GevSCPSPacketSize.SetValue( 8192 )  #  9708 abs max new cam.
-        self.cam.GevSCPD.SetValue( 12000 ) #  interpacket delay
+        if self.model != 'Emulation':
+            self.cam.GevSCPSPacketSize.SetValue( 8192 )  #  9708 abs max new cam.
+            self.cam.GevSCPD.SetValue( 12000 ) #  interpacket delay
         
         if self.model == 'scA1400-17gm':
             self._pixel_format = 'Mono16'		#  Yes, this is 12-bit
         elif self.model == 'acA1920-50gm':
             self._pixel_format = 'Mono12'		#  12-bit
-            
+        else:
+            self._pixel_format = 'Mono8'
         self.cam.PixelFormat.SetValue(self.pixel_format)
     
     @property

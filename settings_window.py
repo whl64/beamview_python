@@ -14,44 +14,100 @@ import numpy as np
 import scipy.ndimage as ndi
 
 class SettingsWindow(tk.Toplevel):
-    def __init__(self):
+    def __init__(self, root):
         super().__init__()
+        self.title('Camera settings')
+        self.base_entry_width = 6
+        self.selection_box = ttk.Combobox(self, state='readonly')
+        self.selection_box.bind('<<ComboboxSelected>>', self.selection_changed)
+        self.selection_box.grid(row=0, column=0)
+        self.active_cameras = {}
+        self.camera_frames = {}
         
+        self.running_widgets = []
+        self.not_running_widgets = []
         
-          
-    def build_side_frame(self):
-        self.side_frame = ttk.Frame(self)
-        self.side_frame.grid(row=1, column=1, rowspan=3)
-        
-        # label that displays frame time
-        self.frame_time_string = tk.StringVar(value='Frame time: 0.000 s')
-        frame_time_label = ttk.Label(self.side_frame, textvariable=self.frame_time_string)
-        frame_time_label.grid(row=0, column=0, columnspan=2)
-        self.running_widgets.append(frame_time_label)
-        
+        button_frame = ttk.Frame(self)
+        button_frame.grid(row=1, column=0)
         # button to start camera
-        start_button = ttk.Button(self.side_frame, text='Start', command=self.start_camera)
-        start_button.grid(row=1, column=0)
+        start_button = ttk.Button(button_frame, text='Start', command=self.start_camera)
+        start_button.grid(row=0, column=0)
         self.not_running_widgets.append(start_button)
         
         # button to stop camera
-        stop_button = ttk.Button(self.side_frame, text='Stop', command=self.stop_camera)
-        stop_button.grid(row=1, column=1)
+        stop_button = ttk.Button(button_frame, text='Stop', command=self.stop_camera)
+        stop_button.grid(row=0, column=1)
         self.running_widgets.append(stop_button)
         
-        # label that displays the maximum pixel value in the frame
-        # as a percentage of the maximum possible pixel value from the bit depth
-        self.max_data_percent_string = tk.StringVar(value='Max data: 0.0%')
-        self.max_data_label = ttk.Label(self.side_frame, textvariable=self.max_data_percent_string)
-        self.max_data_label.grid(row=2, column=0, columnspan=2)
-        self.running_widgets.append(self.max_data_label)
+        self.threshold = 0
+        self.calc_threshold = 0
         
-        # frame that displays information about beam statistics (centroid, size)
-        stat_frame = ttk.LabelFrame(self.side_frame, text='Beam statistics')
-        stat_frame.grid(row=3, column=0, columnspan=2)
+        self.build_stat_frame()
+        self.build_proc_frame()
+        self.build_camera_frame()
+        self.protocol('WM_DELETE_WINDOW', self.cleanup)
+        self.root = root
         
-        self.calculate_stats = tk.BooleanVar()
-        ttk.Checkbutton(stat_frame, variable=self.calculate_stats, text='Calculate statistics?').grid(row=0, column=0, columnspan=2)
+    def cleanup(self):
+        self.root.destroy()
+
+    def start_camera(self):
+        self.cam.start_grabbing()
+        for w in self.not_running_widgets:
+            w.configure(state='disable')
+            
+        for w in self.running_widgets:
+            w.configure(state='enable')
+        
+    def stop_camera(self):
+        self.cam.stop_grabbing()
+        for w in self.running_widgets:
+            w.configure(state='disabled')
+            
+        for w in self.not_running_widgets:
+            w.configure(state='!disabled')
+    
+    def selection_changed(self, *args):
+        self.cam = self.active_cameras[self.selection_box.get()]
+        self.frame = self.camera_frames[self.selection_box.get()]
+        if self.cam.is_grabbing():
+            for w in self.not_running_widgets:
+                w.configure(state='disable')
+            for w in self.running_widgets:
+                w.configure(state='enable')
+        else:
+            for w in self.running_widgets:
+                w.configure(state='disabled')
+            for w in self.not_running_widgets:
+                w.configure(state='!disabled')
+                
+        self.thresh_check.configure(variable=self.frame.use_threshold)
+        self.median_check.configure(variable=self.frame.use_median_filter)
+        self.stat_check.configure(variable=self.frame.calculate_stats)
+        self.threshold = self.frame.threshold
+        self.calc_threshold = self.frame.calc_threshold
+        self.threshold_string.set(self.threshold)
+        self.calc_threshold_string.set(self.calc_threshold)
+        
+        self.exposure_string.set(self.cam.exposure)
+        self.gain_string.set(self.cam.gain)
+        
+        self.min_x_string.set(self.cam.offset_x)
+        self.min_y_string.set(self.cam.offset_y)
+        self.max_x_string.set(self.cam.offset_x + self.cam.width)
+        self.max_y_string.set(self.cam.offset_y + self.cam.height)
+        
+    def add_camera(self, cam, frame):
+        self.selection_box['values'] = (*self.selection_box['values'], cam.name)
+        self.selection_box.set(cam.name)
+        self.active_cameras[cam.name] = cam
+        self.camera_frames[cam.name] = frame
+        self.selection_changed()
+          
+    def build_stat_frame(self):
+        stat_frame = ttk.LabelFrame(self, text='Beam statistics')
+        self.stat_check = ttk.Checkbutton(stat_frame, text='Calculate statistics?')
+        self.stat_check.grid(row=0, column=0, columnspan=2)
         
         ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
         self.calc_threshold_string = tk.IntVar(value=0)
@@ -70,41 +126,43 @@ class SettingsWindow(tk.Toplevel):
         ttk.Label(stat_frame, textvariable=self.centroid_y_string).grid(row=2, column=1, padx=(5,10))
         ttk.Label(stat_frame, textvariable=self.size_x_string).grid(row=3, column=0, padx=(10, 5))
         ttk.Label(stat_frame, textvariable=self.size_y_string).grid(row=3, column=1, padx=(5,10))
+        stat_frame.grid(row=2, column=0)
+
         
+    def build_proc_frame(self):
         # frame that contains image post-processing controls (threshold, median filter)
-        proc_frame = ttk.LabelFrame(self.side_frame, text='Image processing controls')
-        proc_frame.grid(row=4, column=0, columnspan=2)
+        proc_frame = ttk.LabelFrame(self, text='Image processing controls')
         
-        self.use_threshold = tk.BooleanVar()
-        ttk.Checkbutton(proc_frame, text='Use threshold?', variable=self.use_threshold).grid(row=1, column=0, sticky='w')
+        self.thresh_check = ttk.Checkbutton(proc_frame, text='Use threshold?')
+        self.thresh_check.grid(row=1, column=0, sticky='w')
         ttk.Label(proc_frame, text='Threshold value (%): ').grid(row=1, column=1)        
         self.threshold_string = tk.IntVar(value=self.threshold)
         thresh_entry = ttk.Entry(proc_frame, textvariable=self.threshold_string, validate='focusout',
                                  validatecommand=self.threshold_changed, width=self.base_entry_width)
         thresh_entry.bind('<Return>', self.threshold_changed)
         thresh_entry.grid(row=1, column=2)
-        self.use_median_filter = tk.BooleanVar()
-        ttk.Checkbutton(proc_frame, text='Use median filter?', variable=self.use_median_filter).grid(row=0, column=0, sticky='w')
+        self.median_check = ttk.Checkbutton(proc_frame, text='Use median filter?')
+        self.median_check.grid(row=0, column=0, sticky='w')
         
-    def build_bottom_frame(self):
+        proc_frame.grid(row=3, column=0)
+    
+    def build_camera_frame(self):
         self.bottom_frame = ttk.Frame(self)
-        self.aux_frames.append(self.bottom_frame)
-
-        self.bottom_frame.grid(row=2, column=0)
+        self.bottom_frame.grid(row=4, column=0)
         
         # frame that contains exposure time and gain controls
         acq_frame = ttk.LabelFrame(self.bottom_frame, text='Acquisition controls', padding=(0, 0, 10, 0))        
         acq_frame.grid(row=0, column=0, padx=(0, 10))
 
         ttk.Label(acq_frame, text='Exposure time (ms): ').grid(row=0, column=0, sticky='e')
-        self.exposure_string = tk.DoubleVar(value=self.cam.exposure)
+        self.exposure_string = tk.DoubleVar(value=0)
         exposure_entry = ttk.Entry(acq_frame, textvariable=self.exposure_string, validate='focusout',
                                         validatecommand=self.exposure_changed, width=self.base_entry_width)
         exposure_entry.grid(row=0, column=1)
         exposure_entry.bind('<Return>', self.exposure_changed)
         
         ttk.Label(acq_frame, text='Gain: ').grid(row=1, column=0, sticky='e')
-        self.gain_string = tk.IntVar(value=self.cam.gain)
+        self.gain_string = tk.IntVar(value=0)
         gain_entry = ttk.Entry(acq_frame, textvariable=self.gain_string, validate='focusout',
                                validatecommand=self.gain_changed, width=self.base_entry_width)
         gain_entry.grid(row=1, column=1)
@@ -123,10 +181,10 @@ class SettingsWindow(tk.Toplevel):
         
         ttk.Button(size_frame, command=self.reset_size, text='Reset').grid(row=0, column=4, rowspan=2)
         
-        self.min_x_string = tk.IntVar(value=self.cam.offset_x)
-        self.min_y_string = tk.IntVar(value=self.cam.offset_y)
-        self.max_x_string = tk.IntVar(value=self.cam.offset_x + self.cam.width)
-        self.max_y_string = tk.IntVar(value=self.cam.offset_y + self.cam.height)
+        self.min_x_string = tk.IntVar(value=0)
+        self.min_y_string = tk.IntVar(value=0)
+        self.max_x_string = tk.IntVar(value=0)
+        self.max_y_string = tk.IntVar(value=0)
 
         min_x_entry = ttk.Entry(size_frame, textvariable=self.min_x_string, validate='focusout',
                                 validatecommand=self.size_changed, width=self.base_entry_width)
@@ -153,7 +211,6 @@ class SettingsWindow(tk.Toplevel):
     def calc_threshold_changed(self, *args):
         try:
             self.calc_threshold = self.calc_threshold_string.get()
-            print(self.calc_threshold)
             if self.calc_threshold < 0:
                 self.calc_threshold = 0
             elif self.calc_threshold > 100:
@@ -162,11 +219,12 @@ class SettingsWindow(tk.Toplevel):
             pass
         
         self.calc_threshold_string.set(self.calc_threshold)
+        self.frame.calc_threshold = self.calc_threshold
     
     def threshold_changed(self, *args):
         try:
             self.threshold = self.threshold_string.get()
-            print(self.threshold)
+            
             if self.threshold < 0:
                 self.threshold = 0
             elif self.threshold > 100:
@@ -175,6 +233,7 @@ class SettingsWindow(tk.Toplevel):
             pass
         
         self.threshold_string.set(self.threshold)
+        self.frame.threshold = self.threshold
         
     def reset_size(self):
         self.min_x_string.set(0)
@@ -230,14 +289,14 @@ class SettingsWindow(tk.Toplevel):
         self.max_x_string.set(self.cam.offset_x + self.cam.width)
         self.max_y_string.set(self.cam.offset_y + self.cam.height)
         
-        self.axis_update_required = True
+        self.frame.axis_update_required = True
 
     def gain_changed(self, *args):
         try:
             self.cam.gain = self.gain_string.get()
         except tk.TclError:
             pass
-        print(self.cam.gain)
+    
         self.gain_string.set(self.cam.gain)
     
     def exposure_changed(self, *args):
@@ -245,24 +304,5 @@ class SettingsWindow(tk.Toplevel):
             self.cam.exposure = self.exposure_string.get()
         except tk.TclError:
             pass
-        print(self.cam.exposure)
-        self.exposure_string.set(self.cam.exposure)
     
-    def start_camera(self):
-        self.cam.start_grabbing()
-        for w in self.not_running_widgets:
-            w.configure(state='disable')
-            
-        for w in self.running_widgets:
-            w.configure(state='enable')
-        self.update_frames()
-        
-    def stop_camera(self):
-        self.cam.stop_grabbing()
-        self.title(f'{self.cam.name}: Stopped.')
-
-        for w in self.running_widgets:
-            w.configure(state='disabled')
-            
-        for w in self.not_running_widgets:
-            w.configure(state='!disabled')
+        self.exposure_string.set(self.cam.exposure)

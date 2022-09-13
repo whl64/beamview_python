@@ -12,15 +12,21 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import time
 import numpy as np
 from camera_window import CameraWindow
+from settings_window import SettingsWindow
+import os
 
 class Beamview(tk.Tk):
     def __init__(self):
         super().__init__()
                 
-        self.title('Beamview')
-
         tlf = pylon.TlFactory.GetInstance()
-        devices = tlf.EnumerateDevices()
+        self.devices = tlf.EnumerateDevices()
+        for i, device in enumerate(self.devices):
+            if device.GetUserDefinedName() == '':
+                device.SetUserDefinedName(f'Camera {i}')
+
+        self.cam_window = CameraWindow(self)
+        self.settings_window = SettingsWindow(self)
         
         self.camera_list = ttk.Treeview(self, columns=('name', 'model', 'address'), show='headings', selectmode='browse')
         self.camera_list.heading('name', text='Name')
@@ -28,28 +34,31 @@ class Beamview(tk.Tk):
         self.camera_list.heading('address', text='IP Address')
         
         device_display = []
-        
-        for device in devices:
+        for device in self.devices:
             self.camera_list.insert('', tk.END, values=(device.GetUserDefinedName(), device.GetModelName(), device.GetAddress()))
         
         self.camera_list.grid(row=0, column=0)
-        self.camera_list.bind('<Double-Button-1>', self.open_camera_window)
+        self.camera_list.bind('<Double-Button-1>', self.add_camera)
         scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.camera_list.yview)
         self.camera_list.configure(yscroll=scrollbar.set)
         scrollbar.grid(row=0, column=1, sticky='ns')
         self.opened_cameras = {}
             
-    def open_camera_window(self, *args):
-        item = self.camera_list.item(self.camera_list.selection()[0])
-        address = item['values'][2]
-        try:
-            self.opened_cameras[address].lift()
-        except:
-            self.opened_cameras[address] = CameraWindow(address)
+    def add_camera(self, *args):
+        index = self.camera_list.index(self.camera_list.selection()[0])
+        serial_number = self.devices[index].GetSerialNumber()
+        if serial_number not in self.opened_cameras:
+            cam  = Basler_Camera(serial_number)
+            if cam.name == '':
+                cam.name = self.devices[index].GetUserDefinedName()
+            self.opened_cameras[serial_number] = cam
+            frame = self.cam_window.add_camera(cam)
+            self.settings_window.add_camera(cam, frame)
 
-        
-        
 def main():
+    number_of_emulated_cameras = 5
+    os.environ['PYLON_CAMEMU'] = str( number_of_emulated_cameras )
+
     beamview = Beamview()
     beamview.mainloop()
     

@@ -12,76 +12,37 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import time
 import numpy as np
 import scipy.ndimage as ndi
+from camera_frame import CameraFrame
 
 class CameraWindow(tk.Toplevel):    
-    def __init__(self):
+    def __init__(self, root):
         super().__init__()
-        self.camera_frames = []        
+        self.title('Beamview')
+        self.camera_frames = {}
         self.protocol('WM_DELETE_WINDOW', self.cleanup)
+        self.root = root
+        self.update_frames()
     
     def cleanup(self):
-        for camera_frame in self.camera_frames:
-            camera_frame.cleanup()
-        self.destroy()
+        self.root.destroy()
     
+    def add_camera(self, cam):
+        frame = CameraFrame(self, cam)
+        self.camera_frames[cam.serial_number] = frame
+        assigned_row = (len(self.camera_frames) - 1)%2
+        assigned_column = int((len(self.camera_frames) - 1)/2)
+        frame.grid(row=assigned_row, column=assigned_column, sticky='nsew')
+        
+        for col in range(self.grid_size()[0]):
+            self.grid_columnconfigure(col, weight=1)
+            
+        for row in range(self.grid_size()[1]):
+            self.grid_rowconfigure(row, weight=1)
+            
+        return frame
+        
     def update_frames(self):
-        if self.cam.is_grabbing():
-            try:
-                frame = self.cam.return_frame()
-                frame_time = time.time() - self.prev_frame_timestamp
-                self.prev_frame_timestamp = time.time()
-                if frame_time > 50:
-                    frame_time = 50
-                self.frame_time_string.set(f'Frame time: {frame_time:.3f} s')
-                self.title(f'{self.cam.name}: Running. Frame time: {frame_time:.3f} s')
+        for address in self.camera_frames:
+            self.camera_frames[address].update_frames()
+        self.after(50, self.update_frames)
 
-                if self.use_median_filter.get():
-                    frame = ndi.median_filter(frame, size=2)
-                    
-                if self.calculate_stats.get():
-                    calc_frame = np.copy(frame)
-                    max_data = np.max(calc_frame)
-                    calc_frame[calc_frame < max_data*self.calc_threshold/100] = 0
-                    calc_frame = calc_frame.astype(float)
-                    calc_frame /= np.sum(calc_frame)
-                    
-                    x_values = np.arange(self.min_x_string.get(), self.max_x_string.get())
-                    y_values = np.arange(self.min_y_string.get(), self.max_y_string.get())
-                    
-                    xx, yy = np.meshgrid(x_values, y_values, indexing='xy')
-                    
-                    centroid_x = np.sum(xx * calc_frame)
-                    centroid_y = np.sum(yy * calc_frame)
-                    
-                    self.centroid_x_string.set(f'Centroid x (px): {centroid_x:.1f}')
-                    self.centroid_y_string.set(f'Centroid y (px): {centroid_y:.1f}')
-                    
-                max_data_percent = 100 * np.max(frame) / (2**self.bit_depth - 1)
-                self.max_data_percent_string.set(f'Max data: {max_data_percent:.1f}%')
-                if max_data_percent > 97:
-                    self.max_data_label.config(background='red')
-                else:
-                    self.max_data_label.config(background=self.cget('background'))
-
-                        
-                if self.use_threshold.get():
-                    max_data = np.max(frame)
-                    frame[frame < max_data*self.threshold/100] = 0
-                if self.axis_update_required:
-                    print('axis updated')
-                    self.ax.clear()
-                    self.ax.set_title(self.cam.name)
-                    self.image = self.ax.imshow(frame, vmin=self.vmin, vmax=self.vmax,
-                                                extent=(self.cam.offset_x, self.cam.offset_x + self.cam.width,
-                                                        self.cam.offset_y + self.cam.height, self.cam.offset_y))
-                    self.axis_update_required = False
-                else:
-                    self.image.set_data(frame)
-                self.canvas.draw()
-
-            except RuntimeError as e:
-                print(e)
-            self.after(50, self.update_frames)
-            
-            
-            

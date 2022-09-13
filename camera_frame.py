@@ -14,10 +14,11 @@ import time
 import numpy as np
 import scipy.ndimage as ndi
 
-class CameraWindow(tk.Frame):    
-    def __init__(self, address):
-        super().__init__()
-        self.cam = Basler_Camera(address)
+class CameraFrame(tk.Frame):    
+    def __init__(self, master, cam):
+        super().__init__(master)
+        self.cam = cam
+        self.default_fig_width = 5
         # set up plotting canvas
         info_frame = ttk.Frame(self)
         info_frame.grid(row=0, column=0)
@@ -34,13 +35,22 @@ class CameraWindow(tk.Frame):
         ttk.Label(info_frame, textvariable=self.centroid_string).grid(row=0, column=3, padx=(5, 5))
                 
         self.calc_threshold = 0
-        self.calc_threshold_string = tk.StringVar(value=f'Threshold used: {self.threshold}')
-        ttk.Label(info_frame, textvariable=self.centroid_string).grid(row=0, column=3, padx=(5, 5))
         
         self.max_data_percent_string = tk.StringVar(value='Max data: 0.0%')
-        ttk.Label(info_frame, textvariable=self.max_data_string).grid(row=0, column=4, padx=(5, 10))
+        self.max_data_label = ttk.Label(info_frame, textvariable=self.max_data_percent_string)
+        self.max_data_label.grid(row=0, column=5, padx=(5, 10))
         
         self.threshold = 0
+
+        if self.cam.pixel_format == 'Mono16':
+            self.bit_depth = 16
+        elif self.cam.pixel_format == 'Mono12':
+            self.bit_depth = 12
+        else:
+            self.bit_depth = 12  # default to 12-bit
+            
+        self.vmin = 0
+        self.vmax = 2**self.bit_depth - 1
         
         self.fig = Figure(figsize=(self.default_fig_width, self.default_fig_width * self.cam.max_height/self.cam.max_width))
         self.fig.set_tight_layout(True)
@@ -62,6 +72,11 @@ class CameraWindow(tk.Frame):
         # set resizing priorities (higher weight gets more room)
         self.grid_rowconfigure(0, weight=3, minsize=20)
         self.grid_rowconfigure(1, weight=1)
+        
+        self.prev_frame_timestamp = time.time()
+        self.use_median_filter = tk.BooleanVar(value=False)
+        self.calculate_stats = tk.BooleanVar(value=True)
+        self.use_threshold = tk.BooleanVar(value=False)
         self.stop_camera()
             
     def cleanup(self):
@@ -95,12 +110,11 @@ class CameraWindow(tk.Frame):
                     calc_frame = np.copy(frame)
                     max_data = np.max(calc_frame)
                     calc_frame[calc_frame < max_data*self.calc_threshold/100] = 0
-                    self.calc_threshold_string.set(self.calc_threshold)
                     calc_frame = calc_frame.astype(float)
                     calc_frame /= np.sum(calc_frame)
                     
-                    x_values = np.arange(self.min_x_string.get(), self.max_x_string.get())
-                    y_values = np.arange(self.min_y_string.get(), self.max_y_string.get())
+                    x_values = np.arange(self.cam.offset_x, self.cam.offset_x + self.cam.width)
+                    y_values = np.arange(self.cam.offset_y, self.cam.offset_y + self.cam.height)
                     
                     xx, yy = np.meshgrid(x_values, y_values, indexing='xy')
                     
@@ -116,12 +130,10 @@ class CameraWindow(tk.Frame):
                 else:
                     self.max_data_label.config(background=self.cget('background'))
 
-                        
                 if self.use_threshold.get():
                     max_data = np.max(frame)
                     frame[frame < max_data*self.threshold/100] = 0
                 if self.axis_update_required:
-                    print('axis updated')
                     self.ax.clear()
                     self.ax.set_title(self.cam.name)
                     self.image = self.ax.imshow(frame, vmin=self.vmin, vmax=self.vmax,
@@ -134,7 +146,6 @@ class CameraWindow(tk.Frame):
 
             except RuntimeError as e:
                 print(e)
-            self.after(50, self.update_frames)
             
             
             
