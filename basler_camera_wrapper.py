@@ -16,10 +16,10 @@ class Basler_Camera(cw.Camera):
         self.cam.GevSCPSPacketSize.SetValue( 8192 )  #  9708 abs max new cam.
         self.cam.GevSCPD.SetValue( 12000 ) #  interpacket delay
         
-        if self.model == "scA1400-17gm":
-            self._pixel_format = "Mono16"		#  Yes, this is 12-bit
-        elif self.model == "acA1920-50gm":
-            self._pixel_format = "Mono12"		#  12-bit
+        if self.model == 'scA1400-17gm':
+            self._pixel_format = 'Mono16'		#  Yes, this is 12-bit
+        elif self.model == 'acA1920-50gm':
+            self._pixel_format = 'Mono12'		#  12-bit
             
         self.cam.PixelFormat.SetValue(self.pixel_format)
     
@@ -35,11 +35,13 @@ class Basler_Camera(cw.Camera):
     def gain(self, value):
         self.cam.GainRaw.SetValue(value)
     
-    '''
-    Exposure time in ms
-    '''
     @property
     def exposure(self):
+        """Exposure time in ms
+
+        Returns:
+            float: exposure time in ms
+        """
         return self.cam.ExposureTimeRaw.GetValue()/1e3
     
     @exposure.setter
