@@ -68,6 +68,7 @@ class CameraFrame(tk.Frame):
         self.fig.set_tight_layout(True)
         self.ax = self.fig.add_subplot()
         self.ax.set_title(self.cam.name)
+        self.plot_data = np.array([])
         self.image = self.ax.imshow(np.zeros((self.cam.height, self.cam.width)), vmin=self.vmin, vmax=self.vmax,
                                     extent=(self.cam.offset_x, self.cam.offset_x + self.cam.width,
                                             self.cam.offset_y + self.cam.height, self.cam.offset_y))
@@ -116,7 +117,7 @@ class CameraFrame(tk.Frame):
     def update_frames(self):
         if self.cam.is_grabbing():
             try:
-                frame = self.cam.return_frame()
+                plot_data = self.cam.return_frame()
                 frame_time = time.time() - self.prev_frame_timestamp
                 self.prev_frame_timestamp = time.time()
                 if frame_time > 50:
@@ -124,9 +125,9 @@ class CameraFrame(tk.Frame):
                 self.frame_time_string.set(f'Frame time: {frame_time:.3f} s')
 
                 if self.use_median_filter.get():
-                    frame = ndi.median_filter(frame, size=2)
+                    plot_data = ndi.median_filter(plot_data, size=2)
                     
-                max_data_percent = 100 * np.max(frame) / (2**self.bit_depth - 1)
+                max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
                 self.max_data_percent_string.set(f'Max data: {max_data_percent:.1f}%')
                 if max_data_percent > 97:
                     self.max_data_label.config(background='red')
@@ -134,15 +135,15 @@ class CameraFrame(tk.Frame):
                     self.max_data_label.config(background=self.cget('background'))
 
                 if self.use_threshold.get():
-                    max_data = np.max(frame)
-                    frame[frame < max_data*self.threshold/100] = 0
+                    max_data = np.max(plot_data)
+                    plot_data[plot_data < max_data*self.threshold/100] = 0
                     
                 if self.calculate_stats.get():
-                    calc_frame = np.copy(frame)
-                    max_data = np.max(calc_frame)
+                    calc_plot_data = np.copy(plot_data)
+                    max_data = np.max(calc_plot_data)
                     # calc_frame[calc_frame < max_data*self.calc_threshold/100] = 0
-                    calc_frame = calc_frame.astype(float)
-                    calc_frame /= np.sum(calc_frame)
+                    calc_plot_data = calc_plot_data.astype(float)
+                    calc_plot_data /= np.sum(calc_plot_data)
                     
                     x_values = np.arange(self.cam.offset_x, self.cam.offset_x + self.cam.width).astype(float)
                     y_values = np.arange(self.cam.offset_y, self.cam.offset_y + self.cam.height).astype(float)
@@ -156,20 +157,20 @@ class CameraFrame(tk.Frame):
                     
                     xx, yy = np.meshgrid(x_values, y_values, indexing='xy')
                     
-                    centroid_x = np.sum(xx * calc_frame)
-                    centroid_y = np.sum(yy * calc_frame)
+                    centroid_x = np.sum(xx * calc_plot_data)
+                    centroid_y = np.sum(yy * calc_plot_data)
                     
-                    sigma_x = np.sqrt(np.sum((xx - centroid_x)**2 * calc_frame))
-                    sigma_y = np.sqrt(np.sum((yy - centroid_y)**2 * calc_frame))
+                    sigma_x = np.sqrt(np.sum((xx - centroid_x)**2 * calc_plot_data))
+                    sigma_y = np.sqrt(np.sum((yy - centroid_y)**2 * calc_plot_data))
                     
                     model = Gaussian2dModel() + ConstantModel()
                     
-                    model.set_param_hint('amplitude', min=0, value=np.max(calc_frame))
+                    model.set_param_hint('amplitude', min=0, value=np.max(calc_plot_data))
                     model.set_param_hint('centerx', value=centroid_x)
                     model.set_param_hint('sigmax', value=sigma_x)
                     model.set_param_hint('centery', value=centroid_y)
                     model.set_param_hint('sigmay', value=sigma_y)
-                    model.set_param_hint('c', value=np.min(calc_frame))
+                    model.set_param_hint('c', value=np.min(calc_plot_data))
                     
                     params = model.make_params()
     
@@ -183,8 +184,8 @@ class CameraFrame(tk.Frame):
                     
                 if self.axis_update_required or self.auto_range or self.reset_range:
                     if self.auto_range:
-                        self.vmin = np.min(frame)
-                        self.vmax = np.max(frame)
+                        self.vmin = np.min(plot_data)
+                        self.vmax = np.max(plot_data)
                         self.auto_range = 0
                     elif self.reset_range:
                         self.vmin = 0
@@ -201,13 +202,14 @@ class CameraFrame(tk.Frame):
                         extent = (self.cam.offset_x, (self.cam.offset_x + self.cam.width),
                                   (self.cam.offset_y + self.cam.height), self.cam.offset_y)
                 
-                    self.image = self.ax.imshow(frame, vmin=self.vmin, vmax=self.vmax, extent=extent)
+                    self.image = self.ax.imshow(plot_data, vmin=self.vmin, vmax=self.vmax, extent=extent)
                     divider = make_axes_locatable(self.ax)
                     cax = divider.append_axes('right', size='5%', pad=0.05)
                     self.cbar = self.fig.colorbar(self.image, cax=cax)
                     self.axis_update_required = False
                 else:
-                    self.image.set_data(frame)
+                    self.image.set_data(plot_data)
+                self.plot_data = plot_data
                 self.canvas.draw()
 
             except RuntimeError as e:

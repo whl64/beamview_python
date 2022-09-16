@@ -7,6 +7,7 @@ import numpy as np
 import pypylon.pylon as pylon
 from basler_camera_wrapper import Basler_Camera
 import tkinter as tk
+import tkinter.filedialog as fd
 from tkinter import Checkbutton, ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -42,7 +43,7 @@ class SettingsWindow(tk.Toplevel):
         
         self.threshold = 0
         self.calc_threshold = 0
-        self.calibration = 0
+        self.calibration = 1
         
         self.build_stat_frame()
         self.build_proc_frame()
@@ -71,7 +72,7 @@ class SettingsWindow(tk.Toplevel):
             self.selection_changed()
 
     def start_camera(self):
-        self.frame.start_camera()
+        self.active_frame.start_camera()
         for w in self.not_running_widgets:
             w.configure(state='disable')
             
@@ -79,7 +80,7 @@ class SettingsWindow(tk.Toplevel):
             w.configure(state='enable')
         
     def stop_camera(self):
-        self.frame.stop_camera()
+        self.active_frame.stop_camera()
         for w in self.running_widgets:
             w.configure(state='disabled')
             
@@ -88,7 +89,7 @@ class SettingsWindow(tk.Toplevel):
     
     def selection_changed(self, *args):
         self.cam = self.active_cameras[self.selection_box.current()]
-        self.frame = self.camera_frames[self.selection_box.current()]
+        self.active_frame = self.camera_frames[self.selection_box.current()]
         if self.cam.is_grabbing():
             for w in self.not_running_widgets:
                 w.configure(state='disable')
@@ -100,12 +101,12 @@ class SettingsWindow(tk.Toplevel):
             for w in self.not_running_widgets:
                 w.configure(state='!disabled')
                 
-        self.thresh_check.configure(variable=self.frame.use_threshold)
-        self.median_check.configure(variable=self.frame.use_median_filter)
-        self.stat_check.configure(variable=self.frame.calculate_stats)
-        self.calibration_check.configure(variable=self.frame.use_calibration)
-        self.threshold = self.frame.threshold
-        self.calc_threshold = self.frame.calc_threshold
+        self.thresh_check.configure(variable=self.active_frame.use_threshold)
+        self.median_check.configure(variable=self.active_frame.use_median_filter)
+        self.stat_check.configure(variable=self.active_frame.calculate_stats)
+        self.calibration_check.configure(variable=self.active_frame.use_calibration)
+        self.threshold = self.active_frame.threshold
+        self.calc_threshold = self.active_frame.calc_threshold
         self.threshold_string.set(self.threshold)
         self.calc_threshold_string.set(self.calc_threshold)
         
@@ -125,10 +126,10 @@ class SettingsWindow(tk.Toplevel):
         self.selection_changed()
         
     def set_range(self):
-        self.frame.auto_range = 1
+        self.active_frame.auto_range = 1
 
     def reset_range(self):
-        self.frame.reset_range = 1
+        self.active_frame.reset_range = 1
   
     def build_stat_frame(self):
         stat_frame = ttk.LabelFrame(self, text='Beam statistics')
@@ -158,7 +159,17 @@ class SettingsWindow(tk.Toplevel):
         # ttk.Label(stat_frame, textvariable=self.size_x_string).grid(row=3, column=0, padx=(10, 5))
         # ttk.Label(stat_frame, textvariable=self.size_y_string).grid(row=3, column=1, padx=(5,10))
         stat_frame.grid(row=2, column=0)
-
+        save_button = ttk.Button(self, text='Save image', command=self.save_image)
+        save_button.grid(row=3, column=0)
+        
+    def save_image(self):
+        filename = fd.asksaveasfilename(parent=self, title='Save image...',
+                                        filetypes=[['PNG', '*.png'], ['Numpy archive', '*.npz'], ['JPEG', '.jpg']],
+                                        defaultextension='.png')
+        if filename.endswith('.npz'):
+            np.savez(filename, plot_data=self.active_frame.plot_data, pixel_calibration=self.calibration)
+        else:
+            self.active_frame.fig.savefig(filename)
         
     def build_proc_frame(self):
         # frame that contains image post-processing controls (threshold, median filter)
@@ -175,11 +186,11 @@ class SettingsWindow(tk.Toplevel):
         self.median_check = ttk.Checkbutton(proc_frame, text='Use median filter?')
         self.median_check.grid(row=0, column=0, sticky='w')
         
-        proc_frame.grid(row=3, column=0)
+        proc_frame.grid(row=4, column=0)
     
     def build_camera_frame(self):
         self.bottom_frame = ttk.Frame(self)
-        self.bottom_frame.grid(row=4, column=0)
+        self.bottom_frame.grid(row=5, column=0)
         
         # frame that contains exposure time and gain controls
         acq_frame = ttk.LabelFrame(self.bottom_frame, text='Acquisition controls', padding=(0, 0, 10, 0))        
@@ -260,8 +271,8 @@ class SettingsWindow(tk.Toplevel):
             pass
         
         self.calibration_string.set(self.calibration)
-        self.frame.pixel_calibration = self.calibration
-        self.frame.axis_update_required = True
+        self.active_frame.pixel_calibration = self.calibration
+        self.active_frame.axis_update_required = True
     
     def calc_threshold_changed(self, *args):
         try:
@@ -274,7 +285,7 @@ class SettingsWindow(tk.Toplevel):
             pass
         
         self.calc_threshold_string.set(self.calc_threshold)
-        self.frame.calc_threshold = self.calc_threshold
+        self.active_frame.calc_threshold = self.calc_threshold
     
     def threshold_changed(self, *args):
         try:
@@ -288,7 +299,7 @@ class SettingsWindow(tk.Toplevel):
             pass
         
         self.threshold_string.set(self.threshold)
-        self.frame.threshold = self.threshold
+        self.active_frame.threshold = self.threshold
         
     def reset_size(self):
         self.min_x_string.set(0)
@@ -344,7 +355,7 @@ class SettingsWindow(tk.Toplevel):
         self.max_x_string.set(self.cam.offset_x + self.cam.width)
         self.max_y_string.set(self.cam.offset_y + self.cam.height)
         
-        self.frame.axis_update_required = True
+        self.active_frame.axis_update_required = True
 
     def gain_changed(self, *args):
         try:
