@@ -85,6 +85,8 @@ class CameraFrame(tk.Frame):
         self.use_threshold = tk.BooleanVar(value=False)
         self.use_calibration = tk.BooleanVar(value=False)
         self.calibration = 1
+        self.auto_range = 0
+        self.reset_range = 0
         self.stop_camera()
             
     def cleanup(self):
@@ -168,8 +170,18 @@ class CameraFrame(tk.Frame):
                     self.sigma_string.set(f'Sigma {unit}: ({sigma_x:.2f}, {sigma_y:.2f})') 
     #                                   + f'fit: ({result.params["sigmax"].value:.1f}, {result.params["sigmay"].value:.1f}') """
                     
-                if self.axis_update_required:
-                    self.ax.clear()
+                if self.axis_update_required or self.auto_range or self.reset_range:
+                    if self.auto_range:
+                        self.vmin = np.min(frame)
+                        self.vmax = np.max(frame)
+                        self.auto_range = 0
+                    elif self.reset_range:
+                        self.vmin = 0
+                        self.vmax = 2**self.bit_depth - 1
+                        self.reset_range = 0
+                    self.fig.clear()
+                    self.fig.set_tight_layout(True)
+                    self.ax = self.fig.add_subplot()
                     self.ax.set_title(self.cam.name)
                     if self.use_calibration.get():
                         extent = (self.pixel_calibration * self.cam.offset_x, self.pixel_calibration * (self.cam.offset_x + self.cam.width),
@@ -177,8 +189,11 @@ class CameraFrame(tk.Frame):
                     else:
                         extent = (self.cam.offset_x, (self.cam.offset_x + self.cam.width),
                                   (self.cam.offset_y + self.cam.height), self.cam.offset_y)
-                        
+                
                     self.image = self.ax.imshow(frame, vmin=self.vmin, vmax=self.vmax, extent=extent)
+                    divider = make_axes_locatable(self.ax)
+                    cax = divider.append_axes('right', size='5%', pad=0.05)
+                    self.cbar = self.fig.colorbar(self.image, cax=cax)
                     self.axis_update_required = False
                 else:
                     self.image.set_data(frame)

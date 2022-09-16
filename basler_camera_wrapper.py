@@ -10,7 +10,7 @@ class Basler_Camera(cw.Camera):
         device = tlf.EnumerateDevices([di, ])[0]
         self.name = device.GetUserDefinedName()
         self.model = device.GetModelName()
-        self.address = device.GetAddress()
+#        self.address = device.GetAddress()
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
         self.cam.Open()
         
@@ -23,8 +23,13 @@ class Basler_Camera(cw.Camera):
         elif self.model == 'acA1920-50gm':
             self._pixel_format = 'Mono12'		#  12-bit
         else:
+            self._pixel_format = 'Mono12'
+        try:
+            self.cam.PixelFormat.SetValue(self._pixel_format)
+        except E:
+            print(E)
             self._pixel_format = 'Mono8'
-        self.cam.PixelFormat.SetValue(self.pixel_format)
+            self.cam.PixelFormat.SetValue(self._pixel_format)
     
     @property
     def pixel_format(self):

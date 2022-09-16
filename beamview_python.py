@@ -18,6 +18,7 @@ import os
 class Beamview(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.title('Camera list')
                 
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
@@ -31,11 +32,11 @@ class Beamview(tk.Tk):
         self.camera_list = ttk.Treeview(self, columns=('name', 'model', 'address'), show='headings', selectmode='browse')
         self.camera_list.heading('name', text='Name')
         self.camera_list.heading('model', text='Model')
-        self.camera_list.heading('address', text='IP Address')
+#        self.camera_list.heading('address', text='IP Address')
         
         device_display = []
         for device in self.devices:
-            self.camera_list.insert('', tk.END, values=(device.GetUserDefinedName(), device.GetModelName(), device.GetAddress()))
+            self.camera_list.insert('', tk.END, values=(device.GetUserDefinedName(), device.GetModelName()))
         
         self.camera_list.grid(row=0, column=0)
         self.camera_list.bind('<Double-Button-1>', self.add_camera)
@@ -56,8 +57,8 @@ class Beamview(tk.Tk):
             self.settings_window.add_camera(cam, frame)
 
 def main():
-    number_of_emulated_cameras = 5
-    os.environ['PYLON_CAMEMU'] = str( number_of_emulated_cameras )
+    # number_of_emulated_cameras = 5
+    # os.environ['PYLON_CAMEMU'] = str( number_of_emulated_cameras )
 
     beamview = Beamview()
     beamview.mainloop()

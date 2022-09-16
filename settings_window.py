@@ -106,29 +106,40 @@ class SettingsWindow(tk.Toplevel):
         self.active_cameras[cam.name] = cam
         self.camera_frames[cam.name] = frame
         self.selection_changed()
-          
+        
+    def set_range(self):
+        self.frame.auto_range = 1
+
+    def reset_range(self):
+        self.frame.reset_range = 1
+  
     def build_stat_frame(self):
         stat_frame = ttk.LabelFrame(self, text='Beam statistics')
         self.stat_check = ttk.Checkbutton(stat_frame, text='Calculate statistics?')
         self.stat_check.grid(row=0, column=0, columnspan=2)
+
+        set_range_button = ttk.Button(stat_frame, command=self.set_range, text='Set range')
+        reset_range_button = ttk.Button(stat_frame, command=self.reset_range, text='Reset')
+        set_range_button.grid(row=1, column=0)
+        reset_range_button.grid(row=1, column=1)
         
         # ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
         self.calc_threshold_string = tk.IntVar(value=0)
         self.calc_threshold = 0
-        calc_threshold_entry = ttk.Entry(stat_frame, textvariable=self.calc_threshold_string, validate='focusout',
-                                         validatecommand=self.calc_threshold_changed, width=self.base_entry_width)
-        calc_threshold_entry.bind('<Return>', self.calc_threshold_changed)
-        # calc_threshold_entry.grid(row=1, column=1)
+        # calc_threshold_entry = ttk.Entry(stat_frame, textvariable=self.calc_threshold_string, validate='focusout',
+        #                                  validatecommand=self.calc_threshold_changed, width=self.base_entry_width)
+        # calc_threshold_entry.bind('<Return>', self.calc_threshold_changed)
+        # # calc_threshold_entry.grid(row=1, column=1)
         
-        self.centroid_x_string = tk.StringVar(value='Centroid x (px): N/A')
-        self.centroid_y_string = tk.StringVar(value='Centroid y (px): N/A')
-        self.size_x_string = tk.StringVar(value='Size x (px): N/A')
-        self.size_y_string = tk.StringVar(value='Size y (px): N/A')
+        # self.centroid_x_string = tk.StringVar(value='Centroid x (px): N/A')
+        # self.centroid_y_string = tk.StringVar(value='Centroid y (px): N/A')
+        # self.size_x_string = tk.StringVar(value='Size x (px): N/A')
+        # self.size_y_string = tk.StringVar(value='Size y (px): N/A')
 
-        ttk.Label(stat_frame, textvariable=self.centroid_x_string).grid(row=2, column=0, padx=(10, 5))
-        ttk.Label(stat_frame, textvariable=self.centroid_y_string).grid(row=2, column=1, padx=(5,10))
-        ttk.Label(stat_frame, textvariable=self.size_x_string).grid(row=3, column=0, padx=(10, 5))
-        ttk.Label(stat_frame, textvariable=self.size_y_string).grid(row=3, column=1, padx=(5,10))
+        # ttk.Label(stat_frame, textvariable=self.centroid_x_string).grid(row=2, column=0, padx=(10, 5))
+        # ttk.Label(stat_frame, textvariable=self.centroid_y_string).grid(row=2, column=1, padx=(5,10))
+        # ttk.Label(stat_frame, textvariable=self.size_x_string).grid(row=3, column=0, padx=(10, 5))
+        # ttk.Label(stat_frame, textvariable=self.size_y_string).grid(row=3, column=1, padx=(5,10))
         stat_frame.grid(row=2, column=0)
 
         
