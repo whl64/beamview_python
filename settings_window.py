@@ -1,4 +1,5 @@
 from multiprocessing.sharedctypes import Value
+from tkinter.tix import COLUMN
 import matplotlib as mpl
 mpl.use('TkAgg')
 from matplotlib.figure import Figure
@@ -6,7 +7,7 @@ import numpy as np
 import pypylon.pylon as pylon
 from basler_camera_wrapper import Basler_Camera
 import tkinter as tk
-from tkinter import ttk
+from tkinter import Checkbutton, ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import time
@@ -41,6 +42,7 @@ class SettingsWindow(tk.Toplevel):
         
         self.threshold = 0
         self.calc_threshold = 0
+        self.calibration = 0
         
         self.build_stat_frame()
         self.build_proc_frame()
@@ -52,7 +54,7 @@ class SettingsWindow(tk.Toplevel):
         self.root.destroy()
 
     def start_camera(self):
-        self.cam.start_grabbing()
+        self.frame.start_camera()
         for w in self.not_running_widgets:
             w.configure(state='disable')
             
@@ -60,7 +62,7 @@ class SettingsWindow(tk.Toplevel):
             w.configure(state='enable')
         
     def stop_camera(self):
-        self.cam.stop_grabbing()
+        self.frame.stop_camera()
         for w in self.running_widgets:
             w.configure(state='disabled')
             
@@ -84,6 +86,7 @@ class SettingsWindow(tk.Toplevel):
         self.thresh_check.configure(variable=self.frame.use_threshold)
         self.median_check.configure(variable=self.frame.use_median_filter)
         self.stat_check.configure(variable=self.frame.calculate_stats)
+        self.calibration_check.configure(variable=self.frame.use_calibration)
         self.threshold = self.frame.threshold
         self.calc_threshold = self.frame.calc_threshold
         self.threshold_string.set(self.threshold)
@@ -109,13 +112,13 @@ class SettingsWindow(tk.Toplevel):
         self.stat_check = ttk.Checkbutton(stat_frame, text='Calculate statistics?')
         self.stat_check.grid(row=0, column=0, columnspan=2)
         
-        ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
+        # ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
         self.calc_threshold_string = tk.IntVar(value=0)
         self.calc_threshold = 0
         calc_threshold_entry = ttk.Entry(stat_frame, textvariable=self.calc_threshold_string, validate='focusout',
                                          validatecommand=self.calc_threshold_changed, width=self.base_entry_width)
         calc_threshold_entry.bind('<Return>', self.calc_threshold_changed)
-        calc_threshold_entry.grid(row=1, column=1)
+        # calc_threshold_entry.grid(row=1, column=1)
         
         self.centroid_x_string = tk.StringVar(value='Centroid x (px): N/A')
         self.centroid_y_string = tk.StringVar(value='Centroid y (px): N/A')
@@ -207,7 +210,31 @@ class SettingsWindow(tk.Toplevel):
         
         self.not_running_widgets += size_frame.winfo_children()
         
+        calibration_frame = ttk.Frame(self.bottom_frame)
+        calibration_frame.grid(row=1, column=0, columnspan=2)
         
+        self.calibration_check = ttk.Checkbutton(calibration_frame, text='Use pixel calibration? (um/px)',
+                                                 command=self.calibration_changed)
+        self.calibration_check.grid(row=0, column=0)
+        
+        self.calibration_string = tk.DoubleVar(value=1)
+        calibration_entry = ttk.Entry(calibration_frame, textvariable=self.calibration_string, validate='focusout',
+                                      validatecommand=self.calibration_changed, width=self.base_entry_width)
+        calibration_entry.grid(row=0, column=1)
+        calibration_entry.bind('<Return>', self.calibration_changed)
+    
+    def calibration_changed(self, *args):
+        try:
+            self.calibration = self.calibration_string.get()
+            if self.calibration < 0:
+                self.calibration = 0
+        except tk.TclError:
+            pass
+        
+        self.calibration_string.set(self.calibration)
+        self.frame.pixel_calibration = self.calibration
+        self.frame.axis_update_required = True
+    
     def calc_threshold_changed(self, *args):
         try:
             self.calc_threshold = self.calc_threshold_string.get()
