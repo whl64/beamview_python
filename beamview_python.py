@@ -1,3 +1,4 @@
+from ast import arg
 from select import select
 import matplotlib as mpl
 mpl.use('TkAgg')
@@ -14,6 +15,7 @@ import numpy as np
 from camera_window import CameraWindow
 from settings_window import SettingsWindow
 import os
+import argparse
 
 class Beamview(tk.Tk):
     def __init__(self):
@@ -57,8 +59,12 @@ class Beamview(tk.Tk):
             self.settings_window.add_camera(cam, frame)
 
 def main():
-    # number_of_emulated_cameras = 5
-    # os.environ['PYLON_CAMEMU'] = str( number_of_emulated_cameras )
+    parser = argparse.ArgumentParser(description='Multicam Beamview.')
+    parser.add_argument('--debug', help='create emulated cameras for debugging', action='store_true')
+    args = parser.parse_args()
+    if args.debug:
+        number_of_emulated_cameras = 5
+        os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
 
     beamview = Beamview()
     beamview.mainloop()
