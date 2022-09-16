@@ -23,7 +23,10 @@ class CameraFrame(tk.Frame):
         self.cam = cam
         self.default_fig_width = 5
         # set up plotting canvas
-        info_frame = ttk.Frame(self)
+        status_frame = ttk.Frame(self)
+        status_frame.grid(row=0, column=0)
+        
+        info_frame = ttk.Frame(status_frame)
         info_frame.grid(row=0, column=0)
                 
         ttk.Label(info_frame, text=self.cam.name).grid(row=0, column=0, padx=(10, 5))
@@ -43,6 +46,9 @@ class CameraFrame(tk.Frame):
         
         self.sigma_string = tk.StringVar(value='Sigmas (px): (N/A, N/A)')
         ttk.Label(info_frame, textvariable=self.sigma_string).grid(row=1, column=2, padx=(5, 5), columnspan=2)
+        
+        close_button = ttk.Button(status_frame, text='Close camera', command=self.close)
+        close_button.grid(row=0, column=1, sticky='e')
                 
         self.calc_threshold = 0
         
@@ -88,6 +94,11 @@ class CameraFrame(tk.Frame):
         self.auto_range = 0
         self.reset_range = 0
         self.stop_camera()
+    
+    def close(self):
+        self.cleanup()
+        self.master.regrid()
+        self.master.root.remove_camera(self.cam)
             
     def cleanup(self):
         self.cam.stop_grabbing()

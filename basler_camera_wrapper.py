@@ -1,5 +1,6 @@
 import camera_wrapper as cw
 import pypylon.pylon as pylon
+import pypylon._genicam as _genicam
 
 class Basler_Camera(cw.Camera):
     def __init__(self, serial_number):
@@ -26,8 +27,7 @@ class Basler_Camera(cw.Camera):
             self._pixel_format = 'Mono12'
         try:
             self.cam.PixelFormat.SetValue(self._pixel_format)
-        except E:
-            print(E)
+        except _genicam.InvalidArgumentException as E:
             self._pixel_format = 'Mono8'
             self.cam.PixelFormat.SetValue(self._pixel_format)
     

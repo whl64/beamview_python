@@ -22,8 +22,8 @@ class SettingsWindow(tk.Toplevel):
         self.selection_box = ttk.Combobox(self, state='readonly')
         self.selection_box.bind('<<ComboboxSelected>>', self.selection_changed)
         self.selection_box.grid(row=0, column=0)
-        self.active_cameras = {}
-        self.camera_frames = {}
+        self.active_cameras = []
+        self.camera_frames = []
         
         self.running_widgets = []
         self.not_running_widgets = []
@@ -52,6 +52,23 @@ class SettingsWindow(tk.Toplevel):
         
     def cleanup(self):
         self.root.destroy()
+        
+    def remove_camera(self, cam_to_remove):
+        new_cameras = []
+        new_frames = []
+        for cam, frame in zip(self.active_cameras, self.camera_frames):
+            if cam != cam_to_remove:
+                new_cameras.append(cam)
+                new_frames.append(frame)
+        self.active_cameras = new_cameras
+        self.camera_frames = new_frames       
+        current_index = self.selection_box.current()
+        if current_index == len(self.active_cameras):
+            current_index -= 1
+        self.selection_box['values'] = tuple([cam.name for cam in self.active_cameras])
+        if current_index > -1:
+            self.selection_box.current(current_index)
+            self.selection_changed()
 
     def start_camera(self):
         self.frame.start_camera()
@@ -70,8 +87,8 @@ class SettingsWindow(tk.Toplevel):
             w.configure(state='!disabled')
     
     def selection_changed(self, *args):
-        self.cam = self.active_cameras[self.selection_box.get()]
-        self.frame = self.camera_frames[self.selection_box.get()]
+        self.cam = self.active_cameras[self.selection_box.current()]
+        self.frame = self.camera_frames[self.selection_box.current()]
         if self.cam.is_grabbing():
             for w in self.not_running_widgets:
                 w.configure(state='disable')
@@ -103,8 +120,8 @@ class SettingsWindow(tk.Toplevel):
     def add_camera(self, cam, frame):
         self.selection_box['values'] = (*self.selection_box['values'], cam.name)
         self.selection_box.set(cam.name)
-        self.active_cameras[cam.name] = cam
-        self.camera_frames[cam.name] = frame
+        self.active_cameras.append(cam)
+        self.camera_frames.append(frame)
         self.selection_changed()
         
     def set_range(self):

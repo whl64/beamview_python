@@ -57,7 +57,12 @@ class Beamview(tk.Tk):
             self.opened_cameras[serial_number] = cam
             frame = self.cam_window.add_camera(cam)
             self.settings_window.add_camera(cam, frame)
-
+            
+    def remove_camera(self, cam):
+        self.settings_window.remove_camera(cam)
+        if cam.serial_number in self.opened_cameras:
+            del self.opened_cameras[cam.serial_number]
+            
 def main():
     parser = argparse.ArgumentParser(description='Multicam Beamview.')
     parser.add_argument('--debug', help='create emulated cameras for debugging', action='store_true')
