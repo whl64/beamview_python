@@ -31,7 +31,7 @@ class Beamview(tk.Tk):
         self.cam_window = CameraWindow(self)
         self.settings_window = SettingsWindow(self)
         
-        self.camera_list = ttk.Treeview(self, columns=('name', 'model', 'address'), show='headings', selectmode='browse')
+        self.camera_list = ttk.Treeview(self, columns=('name', 'model'), show='headings', selectmode='browse')
         self.camera_list.heading('name', text='Name')
         self.camera_list.heading('model', text='Model')
 #        self.camera_list.heading('address', text='IP Address')
