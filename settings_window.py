@@ -1,5 +1,6 @@
 from multiprocessing.sharedctypes import Value
 from tkinter.tix import COLUMN
+from wsgiref import validate
 import matplotlib as mpl
 mpl.use('TkAgg')
 from matplotlib.figure import Figure
@@ -118,6 +119,9 @@ class SettingsWindow(tk.Toplevel):
         self.max_x_string.set(self.cam.offset_x + self.cam.width)
         self.max_y_string.set(self.cam.offset_y + self.cam.height)
         
+        self.manual_min_string.set(self.active_frame.vmin)
+        self.manual_max_string.set(self.active_frame.vmax)
+        
     def add_camera(self, cam, frame):
         self.selection_box['values'] = (*self.selection_box['values'], cam.name)
         self.selection_box.set(cam.name)
@@ -125,7 +129,7 @@ class SettingsWindow(tk.Toplevel):
         self.camera_frames.append(frame)
         self.selection_changed()
         
-    def set_range(self):
+    def auto_range(self):
         self.active_frame.auto_range = 1
 
     def reset_range(self):
@@ -134,12 +138,23 @@ class SettingsWindow(tk.Toplevel):
     def build_stat_frame(self):
         stat_frame = ttk.LabelFrame(self, text='Beam statistics')
         self.stat_check = ttk.Checkbutton(stat_frame, text='Calculate statistics?')
-        self.stat_check.grid(row=0, column=0, columnspan=2)
-
-        set_range_button = ttk.Button(stat_frame, command=self.set_range, text='Set range')
-        reset_range_button = ttk.Button(stat_frame, command=self.reset_range, text='Reset')
-        set_range_button.grid(row=1, column=0)
-        reset_range_button.grid(row=1, column=1)
+        self.stat_check.grid(row=0, column=0)
+        
+        range_frame = ttk.Frame(stat_frame)
+        range_frame.grid(row=1, column=0)
+        auto_range_button = ttk.Button(range_frame, command=self.auto_range, text='Auto range')
+        reset_range_button = ttk.Button(range_frame, command=self.reset_range, text='Reset')
+        auto_range_button.grid(row=0, column=0, padx=0)
+        reset_range_button.grid(row=0, column=1, padx=0)
+        
+        ttk.Button(range_frame, command=self.manual_range, text='Set manual range').grid(row=1, column=0, padx=0)
+        
+        self.manual_min_string = tk.IntVar()
+        self.manual_max_string = tk.IntVar()
+        ttk.Entry(range_frame, textvariable=self.manual_min_string, width=self.base_entry_width).grid(row=1, column=1, padx=0)
+        ttk.Entry(range_frame, textvariable=self.manual_max_string, width=self.base_entry_width).grid(row=1, column=3, padx=0)
+        
+        ttk.Label(range_frame, text='-').grid(row=1, column=2, padx=0)
         
         # ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
         self.calc_threshold_string = tk.IntVar(value=0)
@@ -162,6 +177,19 @@ class SettingsWindow(tk.Toplevel):
         save_button = ttk.Button(self, text='Save image', command=self.save_image)
         save_button.grid(row=3, column=0)
         
+    def manual_range(self):
+        try:
+            manual_min = self.manual_min_string.get()
+            manual_max = self.manual_max_string.get()
+            self.active_frame.vmin = manual_min
+            self.active_frame.vmax = manual_max
+            self.active_frame.axis_update_required = True
+        except tk.TclError:
+            pass
+        
+        self.manual_min_string.set(self.active_frame.vmin)
+        self.manual_max_string.set(self.active_frame.vmax)
+            
     def save_image(self):
         filename = fd.asksaveasfilename(parent=self, title='Save image...',
                                         filetypes=[['PNG', '*.png'], ['Numpy archive', '*.npz'], ['JPEG', '.jpg']],
