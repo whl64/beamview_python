@@ -50,6 +50,7 @@ class Beamview(tk.Tk):
                 cam  = Basler_Camera(serial_number)
             except gen.RuntimeException:
                 messagebox.showerror('Error', 'Error: Camera in use by another application.')
+                return
             if cam.name == '':
                 cam.name = self.devices[index].GetUserDefinedName()
             self.opened_cameras[serial_number] = cam
