@@ -1,17 +1,12 @@
-from ast import arg
-from select import select
+from email import message
 import matplotlib as mpl
 mpl.use('TkAgg')
-from matplotlib.figure import Figure
-import numpy as np
+
 import pypylon.pylon as pylon
+from pypylon import _genicam as gen
 from basler_camera_wrapper import Basler_Camera
 import tkinter as tk
-from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import time
-import numpy as np
+from tkinter import ttk, messagebox
 from camera_window import CameraWindow
 from settings_window import SettingsWindow
 import os
@@ -51,7 +46,10 @@ class Beamview(tk.Tk):
         index = self.camera_list.index(self.camera_list.selection()[0])
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
-            cam  = Basler_Camera(serial_number)
+            try:
+                cam  = Basler_Camera(serial_number)
+            except gen.RuntimeException:
+                messagebox.showerror('Error', 'Error: Camera in use by another application.')
             if cam.name == '':
                 cam.name = self.devices[index].GetUserDefinedName()
             self.opened_cameras[serial_number] = cam
