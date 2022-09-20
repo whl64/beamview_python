@@ -58,8 +58,8 @@ class CameraFrame(tk.Frame):
             self.bit_depth = 16
         elif self.cam.pixel_format == 'Mono12':
             self.bit_depth = 12
-        else:
-            self.bit_depth = 12  # default to 12-bit
+        elif self.cam.pixel_format == 'Mono8':
+            self.bit_depth = 8  # default to 12-bit
             
         self.vmin = 0
         self.vmax = 2**self.bit_depth - 1
@@ -92,8 +92,6 @@ class CameraFrame(tk.Frame):
         self.use_threshold = tk.BooleanVar(value=False)
         self.use_calibration = tk.BooleanVar(value=False)
         self.calibration = 1
-        self.auto_range = 0
-        self.reset_range = 0
         self.stop_camera()
     
     def close(self):
@@ -113,6 +111,16 @@ class CameraFrame(tk.Frame):
     def stop_camera(self):
         self.cam.stop_grabbing()
         self.status_string.set('Stopped.')
+        
+    def auto_range(self):
+        self.vmin = np.min(self.plot_data)
+        self.vmax = np.max(self.plot_data)
+        self.axis_update_required = 1
+        
+    def reset_range(self):
+        self.vmin = 0
+        self.vmax = 2**self.bit_depth - 1
+        self.axis_update_required = 1
     
     def update_frames(self):
         if self.cam.is_grabbing():
@@ -182,15 +190,7 @@ class CameraFrame(tk.Frame):
                     self.sigma_string.set(f'Sigma {unit}: ({sigma_x:.2f}, {sigma_y:.2f})') 
     #                                   + f'fit: ({result.params["sigmax"].value:.1f}, {result.params["sigmay"].value:.1f}') """
                     
-                if self.axis_update_required or self.auto_range or self.reset_range:
-                    if self.auto_range:
-                        self.vmin = np.min(plot_data)
-                        self.vmax = np.max(plot_data)
-                        self.auto_range = 0
-                    elif self.reset_range:
-                        self.vmin = 0
-                        self.vmax = 2**self.bit_depth - 1
-                        self.reset_range = 0
+                if self.axis_update_required:
                     self.fig.clear()
                     self.fig.set_tight_layout(True)
                     self.ax = self.fig.add_subplot()

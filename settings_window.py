@@ -130,31 +130,35 @@ class SettingsWindow(tk.Toplevel):
         self.selection_changed()
         
     def auto_range(self):
-        self.active_frame.auto_range = 1
+        self.active_frame.auto_range()
+        self.populate_range_entries()
 
     def reset_range(self):
-        self.active_frame.reset_range = 1
+        self.active_frame.reset_range()
+        self.populate_range_entries()
   
     def build_stat_frame(self):
         stat_frame = ttk.LabelFrame(self, text='Beam statistics')
         self.stat_check = ttk.Checkbutton(stat_frame, text='Calculate statistics?')
-        self.stat_check.grid(row=0, column=0)
+        self.stat_check.grid(row=0, column=0, columnspan=2)
+        
+
+        auto_range_button = ttk.Button(stat_frame, command=self.auto_range, text='Auto range')
+        reset_range_button = ttk.Button(stat_frame, command=self.reset_range, text='Reset')
+        auto_range_button.grid(row=1, column=0)
+        reset_range_button.grid(row=1, column=1)
         
         range_frame = ttk.Frame(stat_frame)
-        range_frame.grid(row=1, column=0)
-        auto_range_button = ttk.Button(range_frame, command=self.auto_range, text='Auto range')
-        reset_range_button = ttk.Button(range_frame, command=self.reset_range, text='Reset')
-        auto_range_button.grid(row=0, column=0, padx=0)
-        reset_range_button.grid(row=0, column=1, padx=0)
+        range_frame.grid(row=2, column=0, columnspan=2)
         
-        ttk.Button(range_frame, command=self.manual_range, text='Set manual range').grid(row=1, column=0, padx=0)
+        ttk.Button(range_frame, command=self.manual_range, text='Set manual range').grid(row=1, column=0, padx=(0, 10))
         
         self.manual_min_string = tk.IntVar()
         self.manual_max_string = tk.IntVar()
-        ttk.Entry(range_frame, textvariable=self.manual_min_string, width=self.base_entry_width).grid(row=1, column=1, padx=0)
-        ttk.Entry(range_frame, textvariable=self.manual_max_string, width=self.base_entry_width).grid(row=1, column=3, padx=0)
+        ttk.Entry(range_frame, textvariable=self.manual_min_string, width=self.base_entry_width).grid(row=1, column=1)
+        ttk.Entry(range_frame, textvariable=self.manual_max_string, width=self.base_entry_width).grid(row=1, column=3)
         
-        ttk.Label(range_frame, text='-').grid(row=1, column=2, padx=0)
+        ttk.Label(range_frame, text='-').grid(row=1, column=2)
         
         # ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
         self.calc_threshold_string = tk.IntVar(value=0)
@@ -177,6 +181,10 @@ class SettingsWindow(tk.Toplevel):
         save_button = ttk.Button(self, text='Save image', command=self.save_image)
         save_button.grid(row=3, column=0)
         
+    def populate_range_entries(self):
+        self.manual_min_string.set(self.active_frame.vmin)
+        self.manual_max_string.set(self.active_frame.vmax)
+        
     def manual_range(self):
         try:
             manual_min = self.manual_min_string.get()
@@ -187,8 +195,7 @@ class SettingsWindow(tk.Toplevel):
         except tk.TclError:
             pass
         
-        self.manual_min_string.set(self.active_frame.vmin)
-        self.manual_max_string.set(self.active_frame.vmax)
+        self.populate_range_entries()
             
     def save_image(self):
         filename = fd.asksaveasfilename(parent=self, title='Save image...',
