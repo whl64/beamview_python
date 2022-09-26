@@ -1,9 +1,10 @@
-from multiprocessing.sharedctypes import Value
-import camera_wrapper as cw
-import pypylon.pylon as pylon
-import pypylon._genicam as _genicam
 from enum import Enum, auto
-import time
+
+import pypylon._genicam as _genicam
+import pypylon.pylon as pylon
+
+import camera_wrapper as cw
+
 
 class TriggerMode(Enum):
     FREERUN = auto()

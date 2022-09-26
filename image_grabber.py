@@ -1,4 +1,3 @@
-from pypylon import genicam
 from pypylon import pylon
 
 class ImageGrabber(pylon.ImageEventHandler):

@@ -1,22 +1,21 @@
-from multiprocessing.sharedctypes import Value
-from tkinter.tix import COLUMN
 import matplotlib as mpl
 
 from image_grabber import ImageGrabber
+
 mpl.use('TkAgg')
-from matplotlib.figure import Figure
-import numpy as np
-import pypylon.pylon as pylon
-from basler_camera_wrapper import Basler_Camera, TriggerMode
+import time
 import tkinter as tk
 from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import time
+
 import numpy as np
 import scipy.ndimage as ndi
-from lmfit import Model
-from lmfit.models import Gaussian2dModel, ConstantModel
+from lmfit.models import ConstantModel, Gaussian2dModel
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from basler_camera_wrapper import TriggerMode
+
 
 class CameraFrame(tk.Frame):    
     def __init__(self, master, cam):

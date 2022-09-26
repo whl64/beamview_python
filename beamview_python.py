@@ -1,15 +1,18 @@
 import matplotlib as mpl
+
 mpl.use('TkAgg')
+import argparse
+import os
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 import pypylon.pylon as pylon
 from pypylon import _genicam as gen
+
 from basler_camera_wrapper import Basler_Camera, TriggerMode
-import tkinter as tk
-from tkinter import ttk, messagebox
 from camera_window import CameraWindow
 from settings_window import SettingsWindow
-import os
-import argparse
+
 
 class Beamview(tk.Tk):
     def __init__(self):

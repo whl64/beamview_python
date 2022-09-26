@@ -1,18 +1,10 @@
-from multiprocessing.sharedctypes import Value
 import matplotlib as mpl
+
 mpl.use('TkAgg')
-from matplotlib.figure import Figure
-import numpy as np
-import pypylon.pylon as pylon
-from basler_camera_wrapper import Basler_Camera
 import tkinter as tk
-from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import time
-import numpy as np
-import scipy.ndimage as ndi
+
 from camera_frame import CameraFrame
+
 
 class CameraWindow(tk.Toplevel):    
     def __init__(self, root):

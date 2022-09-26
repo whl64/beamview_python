@@ -1,20 +1,13 @@
-from multiprocessing.sharedctypes import Value
-from tkinter.tix import COLUMN
-from wsgiref import validate
 import matplotlib as mpl
+
 mpl.use('TkAgg')
-from matplotlib.figure import Figure
-import numpy as np
-import pypylon.pylon as pylon
-from basler_camera_wrapper import Basler_Camera
+import time
 import tkinter as tk
 import tkinter.filedialog as fd
-from tkinter import Checkbutton, ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import time
+from tkinter import ttk
+
 import numpy as np
-import scipy.ndimage as ndi
+
 
 class SettingsWindow(tk.Toplevel):
     def __init__(self, root):
