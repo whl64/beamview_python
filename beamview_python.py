@@ -1,10 +1,9 @@
-from email import message
 import matplotlib as mpl
 mpl.use('TkAgg')
 
 import pypylon.pylon as pylon
 from pypylon import _genicam as gen
-from basler_camera_wrapper import Basler_Camera
+from basler_camera_wrapper import Basler_Camera, TriggerMode
 import tkinter as tk
 from tkinter import ttk, messagebox
 from camera_window import CameraWindow
@@ -47,7 +46,7 @@ class Beamview(tk.Tk):
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
-                cam  = Basler_Camera(serial_number)
+                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE)
             except gen.RuntimeException:
                 messagebox.showerror('Error', 'Error: Camera in use by another application.')
                 return

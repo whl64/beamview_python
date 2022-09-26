@@ -1,9 +1,16 @@
+from multiprocessing.sharedctypes import Value
 import camera_wrapper as cw
 import pypylon.pylon as pylon
 import pypylon._genicam as _genicam
+from enum import Enum, auto
+import time
+
+class TriggerMode(Enum):
+    FREERUN = auto()
+    SOFTWARE = auto()
 
 class Basler_Camera(cw.Camera):
-    def __init__(self, serial_number):
+    def __init__(self, serial_number, trigger_mode):
         super().__init__(serial_number)
         tlf = pylon.TlFactory.GetInstance()
         di = pylon.DeviceInfo()
@@ -13,6 +20,17 @@ class Basler_Camera(cw.Camera):
         self.model = device.GetModelName()
 #        self.address = device.GetAddress()
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
+        
+        if trigger_mode == TriggerMode.SOFTWARE:
+            self.cam.RegisterConfiguration(pylon.SoftwareTriggerConfiguration(), pylon.RegistrationMode_ReplaceAll,
+                                           pylon.Cleanup_Delete)
+        elif trigger_mode == TriggerMode.FREERUN:
+            pass
+        else:
+            raise TypeError('trigger must be of type TriggerMode')
+        
+        self.trigger_mode = trigger_mode
+            
         self.cam.Open()
         
         if self.model != 'Emulation':
@@ -97,14 +115,26 @@ class Basler_Camera(cw.Camera):
         return self.cam.HeightMax.GetValue()
         
     def start_grabbing(self):
-        self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByUser)
+        if self.trigger_mode == TriggerMode.FREERUN:
+            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByUser)
+        elif self.trigger_mode == TriggerMode.SOFTWARE:
+            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     
     def return_frame(self):
-        with self.cam.RetrieveResult(5000) as res:
-            if res.GrabSucceeded():
-                return res.Array
-            else:
-                raise RuntimeError('Grab failed')
+        if self.trigger_mode == TriggerMode.FREERUN:
+            with self.cam.RetrieveResult(5000) as res:
+                if res.GrabSucceeded():
+                    return res.Array
+                else:
+                    raise RuntimeError('Grab failed')
+                
+    def request_frame(self):
+        if self.trigger_mode == TriggerMode.SOFTWARE:
+            if self.cam.WaitForFrameTriggerReady(100, pylon.TimeoutHandling_ThrowException):
+                self.cam.ExecuteSoftwareTrigger()
+    
+    def register_event_handler(self, handler):
+        self.cam.RegisterImageEventHandler(handler, pylon.RegistrationMode_ReplaceAll, pylon.Cleanup_Delete)
     
     def stop_grabbing(self):
         self.cam.StopGrabbing()
