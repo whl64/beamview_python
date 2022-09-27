@@ -53,5 +53,5 @@ class CameraWindow(tk.Toplevel):
     def update_frames(self):
         for address in self.camera_frames:
             self.camera_frames[address].update_frames()
-        self.after(200, self.update_frames)
+        self.after(50, self.update_frames)
 

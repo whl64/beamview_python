@@ -2,6 +2,7 @@ from enum import Enum, auto
 
 import pypylon._genicam as _genicam
 import pypylon.pylon as pylon
+import threading
 
 import camera_wrapper as cw
 
@@ -31,6 +32,11 @@ class Basler_Camera(cw.Camera):
             raise TypeError('trigger must be of type TriggerMode')
         
         self.trigger_mode = trigger_mode
+
+        self.lock = threading.Lock()
+        self.lock.acquire()
+        self.waiting_for_trigger = False
+        self.lock.release()
             
         self.cam.Open()
         
@@ -122,6 +128,7 @@ class Basler_Camera(cw.Camera):
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     
     def return_frame(self):
+        print('frame return attempted')
         if self.trigger_mode == TriggerMode.FREERUN:
             with self.cam.RetrieveResult(5000) as res:
                 if res.GrabSucceeded():
@@ -130,9 +137,19 @@ class Basler_Camera(cw.Camera):
                     raise RuntimeError('Grab failed')
                 
     def request_frame(self):
+        self.lock.acquire()
+        if self.waiting_for_trigger:
+            print('already waiting for trigger')
+            self.lock.release()
+            return
+        self.waiting_for_trigger = True
+        self.lock.release()
         if self.trigger_mode == TriggerMode.SOFTWARE:
-            if self.cam.WaitForFrameTriggerReady(100, pylon.TimeoutHandling_ThrowException):
+            if self.cam.WaitForFrameTriggerReady(1000, pylon.TimeoutHandling_ThrowException):
                 self.cam.ExecuteSoftwareTrigger()
+                self.lock.acquire()
+                self.waiting_for_trigger = False
+                self.lock.release()
     
     def register_event_handler(self, handler):
         self.cam.RegisterImageEventHandler(handler, pylon.RegistrationMode_ReplaceAll, pylon.Cleanup_Delete)

@@ -1,0 +1,1 @@
+LD_LIBRARY_PATH=/home/lo_li/lib:/home/lo_li/lib64:/home/lo_li/openssl/lib:$LD_LIBRARY_PATH /home/lo_li/python3.10/bin/python beamview_python.py

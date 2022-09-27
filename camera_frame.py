@@ -6,6 +6,7 @@ mpl.use('TkAgg')
 import time
 import tkinter as tk
 from tkinter import ttk
+import threading
 
 import numpy as np
 import scipy.ndimage as ndi
@@ -93,6 +94,8 @@ class CameraFrame(tk.Frame):
         self.use_threshold = tk.BooleanVar(value=False)
         self.use_calibration = tk.BooleanVar(value=False)
         self.calibration = 1
+        self.lock = threading.Lock()
+        self.frame_available = False
         self.stop_camera()
     
     def close(self):
@@ -109,6 +112,10 @@ class CameraFrame(tk.Frame):
         self.cam.start_grabbing()
         self.cam.register_event_handler(ImageGrabber(self))
         self.status_string.set('Running.')
+        try:
+            self.cam.request_frame()
+        except:
+            print('trigger timed out')
         
     def stop_camera(self):
         self.cam.stop_grabbing()
@@ -130,7 +137,16 @@ class CameraFrame(tk.Frame):
                 plot_data = self.cam.return_frame()
                 self.draw_frame(plot_data)
             elif self.cam.trigger_mode == TriggerMode.SOFTWARE:
-                self.cam.request_frame()
+                print('update')
+                self.lock.acquire()
+                print('lock acquired')
+                if self.frame_available:
+                    self.frame_available = False
+                    print('draw')
+                    self.lock.release()
+                    self.draw_frame(self.plot_data)
+                else:
+                    self.lock.release()
             
     def draw_frame(self, plot_data):
         try:
@@ -179,16 +195,16 @@ class CameraFrame(tk.Frame):
                 sigma_x = np.sqrt(np.sum((xx - centroid_x)**2 * calc_plot_data))
                 sigma_y = np.sqrt(np.sum((yy - centroid_y)**2 * calc_plot_data))
                 
-                model = Gaussian2dModel() + ConstantModel()
+                # model = Gaussian2dModel() + ConstantModel()
                 
-                model.set_param_hint('amplitude', min=0, value=np.max(calc_plot_data))
-                model.set_param_hint('centerx', value=centroid_x)
-                model.set_param_hint('sigmax', value=sigma_x)
-                model.set_param_hint('centery', value=centroid_y)
-                model.set_param_hint('sigmay', value=sigma_y)
-                model.set_param_hint('c', value=np.min(calc_plot_data))
+                # model.set_param_hint('amplitude', min=0, value=np.max(calc_plot_data))
+                # model.set_param_hint('centerx', value=centroid_x)
+                # model.set_param_hint('sigmax', value=sigma_x)
+                # model.set_param_hint('centery', value=centroid_y)
+                # model.set_param_hint('sigmay', value=sigma_y)
+                # model.set_param_hint('c', value=np.min(calc_plot_data))
                 
-                params = model.make_params()
+                # params = model.make_params()
 
                 # result = model.fit(calc_frame.flatten(), params=params, x=xx.flatten(), y=yy.flatten())              
                 
@@ -197,7 +213,6 @@ class CameraFrame(tk.Frame):
                 
                 self.sigma_string.set(f'Sigma {unit}: ({sigma_x:.2f}, {sigma_y:.2f})') 
 #                                   + f'fit: ({result.params["sigmax"].value:.1f}, {result.params["sigmay"].value:.1f}') """
-                
             if self.axis_update_required:
                 self.fig.clear()
                 self.fig.set_tight_layout(True)
@@ -217,9 +232,9 @@ class CameraFrame(tk.Frame):
                 self.axis_update_required = False
             else:
                 self.image.set_data(plot_data)
-            self.plot_data = plot_data
+            if self.cam.trigger_mode == TriggerMode.FREERUN:
+                self.plot_data = plot_data
             self.canvas.draw()
-
         except RuntimeError as e:
             print(e)
         
