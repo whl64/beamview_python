@@ -33,7 +33,6 @@ class Beamview(tk.Tk):
         self.camera_list.heading('model', text='Model')
 #        self.camera_list.heading('address', text='IP Address')
         
-        device_display = []
         for device in self.devices:
             self.camera_list.insert('', tk.END, values=(device.GetUserDefinedName(), device.GetModelName()))
         

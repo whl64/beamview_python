@@ -96,6 +96,7 @@ class CameraFrame(tk.Frame):
         self.calibration = 1
         self.lock = threading.Lock()
         self.frame_available = False
+        self.currently_drawing = False
         self.stop_camera()
     
     def close(self):
@@ -116,6 +117,7 @@ class CameraFrame(tk.Frame):
             self.cam.request_frame()
         except:
             print('trigger timed out')
+        threading.Thread(target=self.update_frames, daemon=True).start()
         
     def stop_camera(self):
         self.cam.stop_grabbing()
@@ -132,23 +134,21 @@ class CameraFrame(tk.Frame):
         self.axis_update_required = 1
     
     def update_frames(self):
-        if self.cam.is_grabbing():
-            if self.cam.trigger_mode == TriggerMode.FREERUN:
-                plot_data = self.cam.return_frame()
-                self.draw_frame(plot_data)
-            elif self.cam.trigger_mode == TriggerMode.SOFTWARE:
-                print('update')
-                self.lock.acquire()
-                print('lock acquired')
-                if self.frame_available:
-                    self.frame_available = False
-                    print('draw')
-                    self.lock.release()
-                    self.draw_frame(self.plot_data)
-                else:
-                    self.lock.release()
+        while 1:
+            if self.cam.is_grabbing():
+                if self.cam.trigger_mode == TriggerMode.FREERUN:
+                    self.plot_data = self.cam.return_frame()
+                    self.draw_frame()
+                elif self.cam.trigger_mode == TriggerMode.SOFTWARE:
+                    if self.frame_available:
+                        self.frame_available = False
+                        self.draw_frame()
+            else:
+                break
             
-    def draw_frame(self, plot_data):
+    def draw_frame(self):
+        plot_data = self.plot_data
+        
         try:
             frame_time = time.time() - self.prev_frame_timestamp
             self.prev_frame_timestamp = time.time()
@@ -229,12 +229,15 @@ class CameraFrame(tk.Frame):
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes('right', size='5%', pad=0.05)
                 self.cbar = self.fig.colorbar(self.image, cax=cax)
+                self.canvas.draw()
                 self.axis_update_required = False
             else:
                 self.image.set_data(plot_data)
+                self.ax.draw_artist(self.image)
+                self.fig.canvas.blit(self.fig.bbox)
+                self.fig.canvas.flush_events()
             if self.cam.trigger_mode == TriggerMode.FREERUN:
                 self.plot_data = plot_data
-            self.canvas.draw()
         except RuntimeError as e:
             print(e)
         

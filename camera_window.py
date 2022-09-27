@@ -2,6 +2,7 @@ import matplotlib as mpl
 
 mpl.use('TkAgg')
 import tkinter as tk
+import threading
 
 from camera_frame import CameraFrame
 
@@ -13,7 +14,6 @@ class CameraWindow(tk.Toplevel):
         self.camera_frames = {}
         self.protocol('WM_DELETE_WINDOW', self.cleanup)
         self.root = root
-        self.update_frames()
         
     def regrid(self):
         new_frames = {}
@@ -49,9 +49,6 @@ class CameraWindow(tk.Toplevel):
         self.assign_grid_weights()
             
         return frame
-        
-    def update_frames(self):
-        for address in self.camera_frames:
-            self.camera_frames[address].update_frames()
-        self.after(50, self.update_frames)
+
+
 
