@@ -12,7 +12,7 @@ from pypylon import _genicam as gen
 from basler_camera_wrapper import Basler_Camera, TriggerMode
 from camera_window import CameraWindow
 from settings_window import SettingsWindow
-
+import faulthandler
 
 class Beamview(tk.Tk):
     def __init__(self):
@@ -64,6 +64,7 @@ class Beamview(tk.Tk):
             del self.opened_cameras[cam.serial_number]
             
 def main():
+    faulthandler.enable()
     parser = argparse.ArgumentParser(description='Multicam Beamview.')
     parser.add_argument('--debug', help='create emulated cameras for debugging', action='store_true')
     args = parser.parse_args()

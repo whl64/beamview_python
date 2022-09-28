@@ -14,6 +14,7 @@ class CameraWindow(tk.Toplevel):
         self.camera_frames = {}
         self.protocol('WM_DELETE_WINDOW', self.cleanup)
         self.root = root
+        self.after(100, self.redraw)
         
     def regrid(self):
         new_frames = {}
@@ -51,8 +52,12 @@ class CameraWindow(tk.Toplevel):
         return frame
 
     def redraw(self):
-        for frame in self.camera_frames:
-            frame.redraw()
+        try:
+            numbers = self.camera_frames.keys()
+            for sn in numbers:
+                self.camera_frames[sn].redraw()
+        except:
+            pass
         self.after(100, self.redraw)
 
 

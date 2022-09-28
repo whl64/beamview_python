@@ -145,8 +145,14 @@ class Basler_Camera(cw.Camera):
         self.waiting_for_trigger = True
         self.lock.release()
         if self.trigger_mode == TriggerMode.SOFTWARE:
-            if self.cam.WaitForFrameTriggerReady(1000, pylon.TimeoutHandling_ThrowException):
-                self.cam.ExecuteSoftwareTrigger()
+            try:
+                if self.cam.WaitForFrameTriggerReady(1000, pylon.TimeoutHandling_ThrowException):
+                    self.cam.ExecuteSoftwareTrigger()
+                    self.lock.acquire()
+                    self.waiting_for_trigger = False
+                    self.lock.release()
+            except:
+                print('trigger timed out')
                 self.lock.acquire()
                 self.waiting_for_trigger = False
                 self.lock.release()
