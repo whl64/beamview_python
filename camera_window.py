@@ -55,7 +55,7 @@ class CameraWindow(tk.Toplevel):
         try:
             numbers = self.camera_frames.keys()
             for sn in numbers:
-                self.camera_frames[sn].redraw()
+                self.camera_frames[sn].update_frames()
         except:
             pass
         self.after(100, self.redraw)

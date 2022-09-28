@@ -97,7 +97,7 @@ class CameraFrame(tk.Frame):
         
         self.prev_frame_timestamp = time.time()
         self.use_median_filter = tk.BooleanVar(value=False)
-        self.calculate_stats = tk.BooleanVar(value=True)
+        self.calculate_stats = tk.BooleanVar(value=False)
         self.use_threshold = tk.BooleanVar(value=False)
         self.use_calibration = tk.BooleanVar(value=False)
         self.max_data_percent = 0
@@ -108,7 +108,7 @@ class CameraFrame(tk.Frame):
         self.sigma_y = 0
 
         self.calibration = 1
-        self.draw_state = DrawState.NONE
+        self.frame_available = False
        
         self.lock = threading.Lock()
         
@@ -132,10 +132,6 @@ class CameraFrame(tk.Frame):
             self.cam.request_frame()
         except:
             print('trigger timed out')
-        if self.cam.trigger_mode == TriggerMode.FREERUN:
-            threading.Thread(target=self.update_frames, daemon=True).start()
-        else:
-            self.cam.request_frame()
         
     def stop_camera(self):
         self.cam.stop_grabbing()
@@ -150,70 +146,41 @@ class CameraFrame(tk.Frame):
         self.vmin = 0
         self.vmax = 2**self.bit_depth - 1
         self.axis_update_required = True
-    
-    def redraw(self):
-        self.lock.acquire()
-        draw_state = self.draw_state
-        self.draw_state = DrawState.NONE
-        max_data_percent = self.max_data_percent
-        frame_time = self.frame_time
-        centroid_x = self.centroid_x
-        centroid_y = self.centroid_y
-        sigma_x = self.sigma_x
-        sigma_y = self.sigma_y
-        if time.time() - self.prev_frame_timestamp > 2 and self.cam.is_grabbing():
-            self.cam.request_frame()
-        if draw_state == DrawState.NONE:
-            self.lock.release()
-            return
-        if self.max_data_percent > 97:
-            self.max_data_label.config(background='red')
-        else:
-            self.max_data_label.config(background=self.cget('background'))
-        if draw_state == DrawState.BLIT:
-            # self.lock.acquire()
-            self.canvas.blit(self.fig.bbox)
-            self.canvas.flush_events()
-            # self.lock.release()
-        else:
-            # self.lock.acquire()
-            self.canvas.draw()
-            # self.lock.release()
-        self.frame_time_string.set(f'Frame time: {frame_time:.3f} s')
-
-        if self.use_calibration.get():
-            x_values *= self.pixel_calibration/1000
-            y_values *= self.pixel_calibration/1000
-            unit = '(mm)'
-        else:
-            unit = '(px)'
-        self.max_data_percent_string.set(f'Max data: {max_data_percent:.1f}%')
-        self.centroid_string.set(f'Centroid {unit}: ({centroid_x:.2f}, {centroid_y:.2f})') 
-        self.sigma_string.set(f'Sigma {unit}: ({sigma_x:.2f}, {sigma_y:.2f})') 
-        self.lock.release()
 
     def update_frames(self):
-        while 1:
-            if self.cam.is_grabbing():
-                if self.cam.trigger_mode == TriggerMode.FREERUN:
-                    self.draw_frame(self.cam.return_frame())
+        if self.cam.is_grabbing():
+            if self.cam.trigger_mode == TriggerMode.FREERUN:
+                self.plot_data = self.cam.return_frame()
+                self.draw_frame()
             else:
-                break
+                self.lock.acquire()
+                if self.frame_available:
+                    self.frame_available = False
+                    self.draw_frame()
+                else:
+                    self.lock.release()
+                    if time.time() - self.prev_frame_timestamp > 2:
+                        self.cam.request_frame()
             
-    def draw_frame(self, plot_data):
-        self.lock.acquire()
+    def draw_frame(self):
+        plot_data = self.plot_data
+        self.lock.release()
         try:
             frame_time = time.time() - self.prev_frame_timestamp
             self.prev_frame_timestamp = time.time()
             if frame_time > 50:
                 frame_time = 50
-            self.frame_time = frame_time
+            self.frame_time_string.set(f'Frame time: {frame_time:.3f} s')
 
             if self.use_median_filter.get():
                 plot_data = ndi.median_filter(plot_data, size=2)
                 
-            self.max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
-
+            max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
+            self.max_data_percent_string.set(f'Max data: {max_data_percent:.1f}%')
+            if max_data_percent > 97:
+                self.max_data_label.config(background='red')
+            else:
+                self.max_data_label.config(background=self.cget('background'))
             if self.use_threshold.get():
                 max_data = np.max(plot_data)
                 plot_data[plot_data < max_data*self.threshold/100] = 0
@@ -248,13 +215,15 @@ class CameraFrame(tk.Frame):
                 # params = model.make_params()
 
                 # result = model.fit(calc_frame.flatten(), params=params, x=xx.flatten(), y=yy.flatten())              
-                self.centroid_x = centroid_x
-                self.centroid_y = centroid_y
 
-                                        #+ f'fit: ({result.params["centerx"].value:.1f}, {result.params["centery"].value:.1f}')
-                self.sigma_x = sigma_x
-                self.sigma_y = sigma_y
-#                                   + f'fit: ({result.params["sigmax"].value:.1f}, {result.params["sigmay"].value:.1f}') """
+                if self.use_calibration.get():
+                    x_values *= self.pixel_calibration/1000
+                    y_values *= self.pixel_calibration/1000
+                    unit = '(mm)'
+                else:
+                    unit = '(px)'
+                self.centroid_string.set(f'Centroid {unit}: ({centroid_x:.2f}, {centroid_y:.2f})') 
+                self.sigma_string.set(f'Sigma {unit}: ({sigma_x:.2f}, {sigma_y:.2f})') 
             if self.axis_update_required:
                 self.fig.clear()
                 self.fig.set_tight_layout(True)
@@ -272,14 +241,14 @@ class CameraFrame(tk.Frame):
                 cax = divider.append_axes('right', size='5%', pad=0.05)
                 self.cbar = self.fig.colorbar(self.image, cax=cax)
                 self.axis_update_required = False
-                self.draw_state = DrawState.FULL_REDRAW
+                self.canvas.draw()
             else:
                 self.image.set_data(plot_data)
                 self.ax.draw_artist(self.image)    
-                self.draw_state = DrawState.BLIT
+                self.canvas.blit(self.fig.bbox)
+                self.canvas.flush_events()
             self.plot_data = plot_data
         except RuntimeError as e:
             print(e)
-        self.lock.release()
             
             
