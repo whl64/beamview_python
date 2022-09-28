@@ -9,10 +9,8 @@ class ImageGrabber(pylon.ImageEventHandler):
     def OnImageGrabbed(self, camera, res):
         if not res.IsValid():
             raise RuntimeError('Grab failed')
-        # self.camera_frame.lock.acquire()
         self.camera_frame.plot_data = res.Array
-        self.camera_frame.frame_available = True
-        # self.camera_frame.lock.release()
+        self.camera_frame.draw_frame()
         try:
             self.camera_frame.cam.request_frame()
         except:

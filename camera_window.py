@@ -50,5 +50,9 @@ class CameraWindow(tk.Toplevel):
             
         return frame
 
+    def redraw(self):
+        for frame in self.camera_frames:
+            frame.redraw()
+        self.after(100, self.redraw)
 
 

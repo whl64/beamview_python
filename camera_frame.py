@@ -10,13 +10,16 @@ import threading
 
 import numpy as np
 import scipy.ndimage as ndi
-from lmfit.models import ConstantModel, Gaussian2dModel
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+from enum import Enum, auto
 from basler_camera_wrapper import TriggerMode
 
+class DrawState(Enum):
+    NONE = auto()
+    FULL_REDRAW = auto()
+    BLIT = auto()
 
 class CameraFrame(tk.Frame):    
     def __init__(self, master, cam):
@@ -93,10 +96,12 @@ class CameraFrame(tk.Frame):
         self.calculate_stats = tk.BooleanVar(value=True)
         self.use_threshold = tk.BooleanVar(value=False)
         self.use_calibration = tk.BooleanVar(value=False)
+        self.max_data_percent = 0
         self.calibration = 1
+        self.draw_state = DrawState.NONE
+       
         self.lock = threading.Lock()
-        self.frame_available = False
-        self.currently_drawing = False
+        
         self.stop_camera()
     
     def close(self):
@@ -117,7 +122,10 @@ class CameraFrame(tk.Frame):
             self.cam.request_frame()
         except:
             print('trigger timed out')
-        threading.Thread(target=self.update_frames, daemon=True).start()
+        if self.cam.trigger_mode == TriggerMode.FREERUN:
+            threading.Thread(target=self.update_frames, daemon=True).start()
+        else:
+            self.cam.request_frame()
         
     def stop_camera(self):
         self.cam.stop_grabbing()
@@ -133,16 +141,28 @@ class CameraFrame(tk.Frame):
         self.vmax = 2**self.bit_depth - 1
         self.axis_update_required = 1
     
+    def redraw(self):
+        self.lock.acquire()
+        draw_state = self.draw_state
+        self.draw_state = DrawState.NONE
+        self.lock.release()
+        if draw_state == DrawState.NONE:
+            return
+        if self.max_data_percent > 97:
+            self.max_data_label.config(background='red')
+        else:
+            self.max_data_label.config(background=self.cget('background'))
+        if draw_state == DrawState.BLIT:
+            self.canvas.flush_events()
+        else:
+            self.canvas.draw()
+    
     def update_frames(self):
         while 1:
             if self.cam.is_grabbing():
                 if self.cam.trigger_mode == TriggerMode.FREERUN:
                     self.plot_data = self.cam.return_frame()
                     self.draw_frame()
-                elif self.cam.trigger_mode == TriggerMode.SOFTWARE:
-                    if self.frame_available:
-                        self.frame_available = False
-                        self.draw_frame()
             else:
                 break
             
@@ -159,12 +179,8 @@ class CameraFrame(tk.Frame):
             if self.use_median_filter.get():
                 plot_data = ndi.median_filter(plot_data, size=2)
                 
-            max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
-            self.max_data_percent_string.set(f'Max data: {max_data_percent:.1f}%')
-            if max_data_percent > 97:
-                self.max_data_label.config(background='red')
-            else:
-                self.max_data_label.config(background=self.cget('background'))
+            self.max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
+            self.max_data_percent_string.set(f'Max data: {self.max_data_percent:.1f}%')
 
             if self.use_threshold.get():
                 max_data = np.max(plot_data)
@@ -229,13 +245,18 @@ class CameraFrame(tk.Frame):
                 divider = make_axes_locatable(self.ax)
                 cax = divider.append_axes('right', size='5%', pad=0.05)
                 self.cbar = self.fig.colorbar(self.image, cax=cax)
-                self.canvas.draw()
                 self.axis_update_required = False
+                self.lock.acquire()
+                self.draw_state = DrawState.FULL_REDRAW
+                self.lock.release()
             else:
                 self.image.set_data(plot_data)
                 self.ax.draw_artist(self.image)
-                self.fig.canvas.blit(self.fig.bbox)
-                self.fig.canvas.flush_events()
+                self.canvas.blit(self.fig.bbox)    
+                self.lock.acquire()
+                self.draw_state = DrawState.BLIT
+                self.lock.release()
+
             if self.cam.trigger_mode == TriggerMode.FREERUN:
                 self.plot_data = plot_data
         except RuntimeError as e:
