@@ -71,7 +71,7 @@ class Beamview(tk.Tk):
         accumulated_delay = 0
         delay_offset = 0
         for cam in self.opened_cameras.values():
-            cam.frame_transmission_delay = accumulated_delay
+            cam.frame_transmission_delay = accumulated_delay + delay_offset
             total_packet_size = packet_size + 14 + 4  # including Ethernet headers
             accumulated_delay += total_packet_size
         for cam in self.opened_cameras.values():
