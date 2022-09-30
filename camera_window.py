@@ -3,6 +3,7 @@ import matplotlib as mpl
 mpl.use('TkAgg')
 import tkinter as tk
 import threading
+import time
 
 from camera_frame import CameraFrame
 
@@ -15,6 +16,8 @@ class CameraWindow(tk.Toplevel):
         self.protocol('WM_DELETE_WINDOW', self.cleanup)
         self.root = root
         self.after(100, self.redraw)
+        self.trigger_thread = threading.Thread(target=self.trigger_loop)
+        self.trigger_thread.start()
         
     def regrid(self):
         new_frames = {}
@@ -61,3 +64,15 @@ class CameraWindow(tk.Toplevel):
         self.after(100, self.redraw)
 
 
+    def trigger_loop(self):
+        while 1:
+            try:
+                numbers = self.camera_frames.keys()
+                for sn in numbers:
+                    cam = self.camera_frames[sn].cam
+                    if cam.is_grabbing():
+                        cam.request_frame()
+            except:
+                pass
+            time.sleep(0.1)
+                

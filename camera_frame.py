@@ -162,8 +162,6 @@ class CameraFrame(tk.Frame):
                     self.draw_frame()
                 else:
                     self.lock.release()
-                    if time.time() - self.prev_frame_timestamp > 2:
-                        self.cam.request_frame()
             
     def draw_frame(self):
         plot_data = self.plot_data

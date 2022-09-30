@@ -16,11 +16,6 @@ class ImageGrabber(pylon.ImageEventHandler):
             self.camera_frame.lock.release()
         else:
             print('grab failed')
-        frame_time = time.time() - self.last_frame_timestamp
-        if frame_time < self.min_frame_time:
-            time.sleep(self.min_frame_time - frame_time)
-        self.last_frame_timestamp = time.time()
-        self.camera_frame.cam.request_frame()
 
 
 
