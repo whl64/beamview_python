@@ -44,7 +44,7 @@ class CameraWindow(tk.Toplevel):
         self.root.destroy()
     
     def add_camera(self, cam):
-        frame = CameraFrame(self, cam)
+        frame = CameraFrame(self, cam, self.root)
         self.camera_frames[cam.serial_number] = frame
         self.assign_frame_to_grid(frame, len(self.camera_frames) - 1)
         self.assign_grid_weights()

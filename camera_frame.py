@@ -22,8 +22,9 @@ class DrawState(Enum):
     BLIT = auto()
 
 class CameraFrame(tk.Frame):    
-    def __init__(self, master, cam):
+    def __init__(self, master, cam, root):
         super().__init__(master)
+        self.root = root
         self.pixel_calibration = 1
         self.cam = cam
         self.default_fig_width = 5
@@ -132,10 +133,12 @@ class CameraFrame(tk.Frame):
             self.cam.request_frame()
         except:
             print('trigger timed out')
+        self.root.start_camera(self.cam)
         
     def stop_camera(self):
         self.cam.stop_grabbing()
         self.status_string.set('Stopped.')
+        self.root.stop_camera(self.cam)
         
     def auto_range(self):
         self.vmin = np.min(self.plot_data)

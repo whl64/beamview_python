@@ -14,6 +14,8 @@ from camera_window import CameraWindow
 from settings_window import SettingsWindow
 import faulthandler
 
+packet_size = 8192
+
 class Beamview(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -42,13 +44,14 @@ class Beamview(tk.Tk):
         self.camera_list.configure(yscroll=scrollbar.set)
         scrollbar.grid(row=0, column=1, sticky='ns')
         self.opened_cameras = {}
+        self.running_cameras = {}
             
     def add_camera(self, *args):
         index = self.camera_list.index(self.camera_list.selection()[0])
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
-                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE)
+                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size)
             except gen.RuntimeException:
                 messagebox.showerror('Error', 'Error: Camera in use by another application.')
                 return
@@ -57,18 +60,39 @@ class Beamview(tk.Tk):
             self.opened_cameras[serial_number] = cam
             frame = self.cam_window.add_camera(cam)
             self.settings_window.add_camera(cam, frame)
-            
+
     def remove_camera(self, cam):
         self.settings_window.remove_camera(cam)
         if cam.serial_number in self.opened_cameras:
             del self.opened_cameras[cam.serial_number]
+
+
+    def set_delays(self):
+        accumulated_delay = 0
+        delay_offset = 0
+        for cam in self.opened_cameras.values():
+            cam.frame_transmission_delay = accumulated_delay
+            total_packet_size = packet_size + 14 + 4  # including Ethernet headers
+            accumulated_delay += total_packet_size
+        for cam in self.opened_cameras.values():
+            cam.interpacket_delay = accumulated_delay
+
+    def start_camera(self, cam):
+        if cam.serial_number not in self.running_cameras:
+            self.running_cameras[cam.serial_number] = cam
+            self.set_delays()
+
+    def stop_camera(self, cam):
+        if cam.serial_number in self.running_cameras:
+            del self.running_cameras[cam.serial_number]
+            self.set_delays()
             
 def main():
-    faulthandler.enable()
     parser = argparse.ArgumentParser(description='Multicam Beamview.')
     parser.add_argument('--debug', help='create emulated cameras for debugging', action='store_true')
     args = parser.parse_args()
     if args.debug:
+        faulthandler.enable()
         number_of_emulated_cameras = 5
         os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
 

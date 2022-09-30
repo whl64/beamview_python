@@ -12,7 +12,7 @@ class TriggerMode(Enum):
     SOFTWARE = auto()
 
 class Basler_Camera(cw.Camera):
-    def __init__(self, serial_number, trigger_mode):
+    def __init__(self, serial_number, trigger_mode, packet_size=8192):
         super().__init__(serial_number)
         tlf = pylon.TlFactory.GetInstance()
         di = pylon.DeviceInfo()
@@ -41,7 +41,7 @@ class Basler_Camera(cw.Camera):
         self.cam.Open()
         
         if self.model != 'Emulation':
-            self.cam.GevSCPSPacketSize.SetValue( 8192 )  #  9708 abs max new cam.
+            self.cam.GevSCPSPacketSize.SetValue( packet_size )  #  9708 abs max new cam.
             self.cam.GevSCPD.SetValue( 12000 ) #  interpacket delay
         
         if self.model == 'scA1400-17gm':
@@ -56,6 +56,22 @@ class Basler_Camera(cw.Camera):
             self._pixel_format = 'Mono8'
             self.cam.PixelFormat.SetValue(self._pixel_format)
     
+    @property
+    def frame_transmission_delay(self):
+        return self.cam.GevSCFTD.GetValue()
+
+    @frame_transmission_delay.setter
+    def frame_transmission_delay(self, value):
+        return self.cam.GevSCFTD.SetValue(value)
+
+    @property
+    def interpacket_delay(self):
+        return self.cam.GevSCPD.GetValue()
+
+    @interpacket_delay.setter
+    def interpacket_delay(self, value):
+        self.cam.GevSCPD.SetValue(value)
+
     @property
     def pixel_format(self):
         return self._pixel_format
