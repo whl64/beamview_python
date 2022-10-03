@@ -1,10 +1,7 @@
-import matplotlib as mpl
-
-mpl.use('TkAgg')
 import argparse
 import os
-import tkinter as tk
-from tkinter import messagebox, ttk
+
+from PyQt5 import QtWidgets, QtGui
 
 import pypylon.pylon as pylon
 from pypylon import _genicam as gen
@@ -16,10 +13,12 @@ import faulthandler
 
 packet_size = 8192
 
-class Beamview(tk.Tk):
+class Beamview(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.title('Camera list')
+        # layout = QtWidgets.QGridLayout()
+        # self.setLayout(layout)
+        self.setWindowTitle('Camera list')
                 
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
@@ -27,24 +26,26 @@ class Beamview(tk.Tk):
             if device.GetUserDefinedName() == '':
                 device.SetUserDefinedName(f'Camera {i}')
 
-        self.cam_window = CameraWindow(self)
-        self.settings_window = SettingsWindow(self)
-        
-        self.camera_list = ttk.Treeview(self, columns=('name', 'model'), show='headings', selectmode='browse')
-        self.camera_list.heading('name', text='Name')
-        self.camera_list.heading('model', text='Model')
-#        self.camera_list.heading('address', text='IP Address')
+        # self.cam_window = CameraWindow(self)
+        # self.settings_window = SettingsWindow(self)
+            
+        self.camera_list = QtWidgets.QTreeView(self)
+        self.camera_list_model = QtGui.QStandardItemModel()
+        self.camera_list_model.setHorizontalHeaderLabels(('Name', 'Model'))
+        self.camera_list.setModel(self.camera_list_model)
+        self.camera_list.setUniformRowHeights(True)
         
         for device in self.devices:
-            self.camera_list.insert('', tk.END, values=(device.GetUserDefinedName(), device.GetModelName()))
+            self.camera_list_model.appendRow((QtGui.QStandardItem(device.GetUserDefinedName()), QtGui.QStandardItem(device.GetModelName())))
         
-        self.camera_list.grid(row=0, column=0)
-        self.camera_list.bind('<Double-Button-1>', self.add_camera)
-        scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.camera_list.yview)
-        self.camera_list.configure(yscroll=scrollbar.set)
-        scrollbar.grid(row=0, column=1, sticky='ns')
+        # layout.addChildWidget(self.camera_list)
+        # self.camera_list.bind('<Double-Button-1>', self.add_camera)
+        # scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.camera_list.yview)
         self.opened_cameras = {}
         self.running_cameras = {}
+        
+        self.setCentralWidget(self.camera_list)
+
             
     def add_camera(self, *args):
         index = self.camera_list.index(self.camera_list.selection()[0])
@@ -93,11 +94,13 @@ def main():
     args = parser.parse_args()
     if args.debug:
         faulthandler.enable()
-        number_of_emulated_cameras = 5
+        number_of_emulated_cameras = 20
         os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
-
+    app = QtWidgets.QApplication([])
     beamview = Beamview()
-    beamview.mainloop()
+    beamview.show()
+    app.exec_()
+    
     
 if __name__ == '__main__':
     main()

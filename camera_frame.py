@@ -1,64 +1,58 @@
-import matplotlib as mpl
-
 from image_grabber import ImageGrabber
-
-mpl.use('TkAgg')
 import time
-import tkinter as tk
-from tkinter import ttk
 import threading
+import argparse
+import faulthandler
+import os
+
+from PyQt5 import QtWidgets, QtCore
+import pyqtgraph as pg
 
 import numpy as np
 import scipy.ndimage as ndi
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from enum import Enum, auto
-from basler_camera_wrapper import TriggerMode
+from basler_camera_wrapper import Basler_Camera, TriggerMode
+from pypylon import pylon
 
-class DrawState(Enum):
-    NONE = auto()
-    FULL_REDRAW = auto()
-    BLIT = auto()
-
-class CameraFrame(tk.Frame):    
-    def __init__(self, master, cam, root):
+class CameraFrame(QtWidgets.QWidget):    
+    def __init__(self, master, cam, root, app):
         super().__init__(master)
+        self.app = app
         self.root = root
         self.pixel_calibration = 1
         self.cam = cam
         self.default_fig_width = 5
         # set up plotting canvas
-        status_frame = ttk.Frame(self)
-        status_frame.grid(row=0, column=0)
         
-        info_frame = ttk.Frame(status_frame)
-        info_frame.grid(row=0, column=0)
-        info_frame_0 = ttk.Frame(info_frame)
-        info_frame_0.grid(row=0, column=0)
-        info_frame_1 = ttk.Frame(info_frame)
-        info_frame_1.grid(row=1, column=0)
+        main_layout = QtWidgets.QVBoxLayout()
+        status_layout = QtWidgets.QHBoxLayout()
+        info_layout = QtWidgets.QVBoxLayout()
+        info_layout_0 = QtWidgets.QHBoxLayout()
+        info_layout_1 = QtWidgets.QHBoxLayout()
+        
+        main_layout.addLayout(status_layout)
+        status_layout.addLayout(info_layout)
+        info_layout.addLayout(info_layout_0)
+        info_layout.addLayout(info_layout_1)
                 
-        ttk.Label(info_frame_0, text=self.cam.name).grid(row=0, column=0, padx=(0, 5))
+        info_layout_0.addWidget(QtWidgets.QLabel(text=self.cam.name, parent=self))
         
-        self.status_string = tk.StringVar(value='Stopped.')
-        ttk.Label(info_frame_0, textvariable=self.status_string).grid(row=0, column=1, padx=(5, 5))
+        # status_label = QtWidgets.QLabel('Stopped.')
+        # ttk.Label(info_frame_0, textvariable=self.status_string).grid(row=0, column=1, padx=(5, 5))
         
-        self.frame_time_string = tk.StringVar(value='Frame time: 0.00 s')
-        ttk.Label(info_frame_0, textvariable=self.frame_time_string).grid(row=0, column=2, padx=(5, 5))
+        self.frame_time_label = QtWidgets.QLabel(text='0.00 s', parent=self)
+        info_layout_0.addWidget(self.frame_time_label)        
+        # self.max_data_percent_string = tk.StringVar(value='Max data: 0.0%')
+        # self.max_data_label = ttk.Label(info_frame_0, textvariable=self.max_data_percent_string)
+        # self.max_data_label.grid(row=0, column=3, padx=(5, 5))
         
-        self.max_data_percent_string = tk.StringVar(value='Max data: 0.0%')
-        self.max_data_label = ttk.Label(info_frame_0, textvariable=self.max_data_percent_string)
-        self.max_data_label.grid(row=0, column=3, padx=(5, 5))
+        # self.centroid_string = tk.StringVar(value='Centroid (px): (N/A, N/A)')
+        # ttk.Label(info_frame_1, textvariable=self.centroid_string).grid(row=0, column=0, padx=(0, 5))
         
-        self.centroid_string = tk.StringVar(value='Centroid (px): (N/A, N/A)')
-        ttk.Label(info_frame_1, textvariable=self.centroid_string).grid(row=0, column=0, padx=(0, 5))
+        # self.sigma_string = tk.StringVar(value='Sigmas (px): (N/A, N/A)')
+        # ttk.Label(info_frame_1, textvariable=self.sigma_string).grid(row=0, column=1, padx=(5, 0))
         
-        self.sigma_string = tk.StringVar(value='Sigmas (px): (N/A, N/A)')
-        ttk.Label(info_frame_1, textvariable=self.sigma_string).grid(row=0, column=1, padx=(5, 0))
-        
-        close_button = ttk.Button(status_frame, text='Close camera', command=self.close)
-        close_button.grid(row=0, column=1, sticky='w')
+        # close_button = ttk.Button(status_frame, text='Close camera', command=self.close)
+        # close_button.grid(row=0, column=1, sticky='w')
                 
         self.calc_threshold = 0
         
@@ -74,46 +68,52 @@ class CameraFrame(tk.Frame):
         self.vmin = 0
         self.vmax = 2**self.bit_depth - 1
         
-        self.fig = Figure(figsize=(self.default_fig_width, self.default_fig_width * self.cam.max_height/self.cam.max_width))
-        self.fig.set_tight_layout(True)
-        self.ax = self.fig.add_subplot()
-        self.ax.set_title(self.cam.name)
-        self.plot_data = np.array([])
-        self.image = self.ax.imshow(np.zeros((self.cam.height, self.cam.width)), vmin=self.vmin, vmax=self.vmax,
-                                    extent=(self.cam.offset_x, self.cam.offset_x + self.cam.width,
-                                            self.cam.offset_y + self.cam.height, self.cam.offset_y))
-        divider = make_axes_locatable(self.ax)
-        cax = divider.append_axes('right', size='5%', pad=0.05)
-        self.cbar = self.fig.colorbar(self.image, cax=cax)
+        self.fig = pg.GraphicsLayoutWidget()
+        self.viewbox = self.fig.addViewBox()
+        self.img = pg.ImageItem()
+        self.viewbox.addItem(self.img)
+        main_layout.addWidget(self.fig)
+        self.setLayout(main_layout)
 
-        self.canvas = FigureCanvasTkAgg(self.fig, self)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=1, column=0, sticky='nesw')
+        # self.plot_data = np.array([])
+        # self.image = self.ax.imshow(np.zeros((self.cam.height, self.cam.width)), vmin=self.vmin, vmax=self.vmax,
+        #                             extent=(self.cam.offset_x, self.cam.offset_x + self.cam.width,
+        #                                     self.cam.offset_y + self.cam.height, self.cam.offset_y))
+        # divider = make_axes_locatable(self.ax)
+        # cax = divider.append_axes('right', size='5%', pad=0.05)
+        # self.cbar = self.fig.colorbar(self.image, cax=cax)
+
+        # self.canvas = FigureCanvasTkAgg(self.fig, self)
+        # self.canvas.draw()
+        # self.canvas.get_tk_widget().grid(row=1, column=0, sticky='nesw')
         
-        self.axis_update_required = False
+        # self.axis_update_required = False
         
-        # set resizing priorities (higher weight gets more room)
-        self.grid_rowconfigure(0, weight=3, minsize=40)
-        self.grid_rowconfigure(1, weight=1)
+        # # set resizing priorities (higher weight gets more room)
+        # self.grid_rowconfigure(0, weight=3, minsize=40)
+        # self.grid_rowconfigure(1, weight=1)
         
         self.prev_frame_timestamp = time.time()
-        self.use_median_filter = tk.BooleanVar(value=False)
-        self.calculate_stats = tk.BooleanVar(value=False)
-        self.use_threshold = tk.BooleanVar(value=False)
-        self.use_calibration = tk.BooleanVar(value=False)
-        self.max_data_percent = 0
-        self.frame_time = 0
-        self.centroid_x = 0
-        self.centroid_y = 0
-        self.sigma_x = 0
-        self.sigma_y = 0
+        self.use_median_filter = False
+        self.calculate_stats = False
+        self.use_threshold = False
+        self.use_calibration = False
+        # self.max_data_percent = 0
+        # self.frame_time = 0
+        # self.centroid_x = 0
+        # self.centroid_y = 0
+        # self.sigma_x = 0
+        # self.sigma_y = 0
 
-        self.calibration = 1
-        self.frame_available = False
+        # self.calibration = 1
+        # self.frame_available = False
        
         self.lock = threading.Lock()
         
-        self.stop_camera()
+        self.start_camera()
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_frames)
+        self.timer.start(50)
     
     def close(self):
         self.cleanup()
@@ -128,12 +128,12 @@ class CameraFrame(tk.Frame):
     def start_camera(self):
         self.cam.start_grabbing()
         self.cam.register_event_handler(ImageGrabber(self))
-        self.status_string.set('Running.')
+        # self.status_string.set('Running.')
         try:
             self.cam.request_frame()
         except:
             print('trigger timed out')
-        self.root.start_camera(self.cam)
+        # self.root.start_camera(self.cam)
         
     def stop_camera(self):
         self.cam.stop_grabbing()
@@ -165,28 +165,23 @@ class CameraFrame(tk.Frame):
             
     def draw_frame(self):
         plot_data = self.plot_data
-        self.lock.release()
+        # self.lock.release()
         try:
             frame_time = time.time() - self.prev_frame_timestamp
             self.prev_frame_timestamp = time.time()
             if frame_time > 50:
                 frame_time = 50
-            self.frame_time_string.set(f'Frame time: {frame_time:.3f} s')
+            self.frame_time_label.setText(f'Frame time: {frame_time:.3f} s')
 
-            if self.use_median_filter.get():
-                plot_data = ndi.median_filter(plot_data, size=2)
+            # if self.use_median_filter.get():
+            #     plot_data = ndi.median_filter(plot_data, size=2)
                 
             max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
-            self.max_data_percent_string.set(f'Max data: {max_data_percent:.1f}%')
-            if max_data_percent > 97:
-                self.max_data_label.config(background='red')
-            else:
-                self.max_data_label.config(background=self.cget('background'))
-            if self.use_threshold.get():
-                max_data = np.max(plot_data)
-                plot_data[plot_data < max_data*self.threshold/100] = 0
+            # if self.use_threshold.get():
+            #     max_data = np.max(plot_data)
+            #     plot_data[plot_data < max_data*self.threshold/100] = 0
                 
-            if self.calculate_stats.get():
+            if self.calculate_stats:
                 calc_plot_data = np.copy(plot_data)
                 max_data = np.max(calc_plot_data)
                 # calc_frame[calc_frame < max_data*self.calc_threshold/100] = 0
@@ -223,33 +218,27 @@ class CameraFrame(tk.Frame):
                     unit = '(mm)'
                 else:
                     unit = '(px)'
-                self.centroid_string.set(f'Centroid {unit}: ({centroid_x:.2f}, {centroid_y:.2f})') 
-                self.sigma_string.set(f'Sigma {unit}: ({sigma_x:.2f}, {sigma_y:.2f})') 
-            if self.axis_update_required:
-                self.fig.clear()
-                self.fig.set_tight_layout(True)
-                self.ax = self.fig.add_subplot()
-                self.ax.set_title(self.cam.name)
-                if self.use_calibration.get():
-                    extent = (self.pixel_calibration * self.cam.offset_x, self.pixel_calibration * (self.cam.offset_x + self.cam.width),
-                                self.pixel_calibration * (self.cam.offset_y + self.cam.height), self.pixel_calibration * self.cam.offset_y)
-                else:
-                    extent = (self.cam.offset_x, (self.cam.offset_x + self.cam.width),
-                                (self.cam.offset_y + self.cam.height), self.cam.offset_y)
-            
-                self.image = self.ax.imshow(plot_data, vmin=self.vmin, vmax=self.vmax, extent=extent)
-                divider = make_axes_locatable(self.ax)
-                cax = divider.append_axes('right', size='5%', pad=0.05)
-                self.cbar = self.fig.colorbar(self.image, cax=cax)
-                self.axis_update_required = False
-                self.canvas.draw()
-            else:
-                self.image.set_data(plot_data)
-                self.ax.draw_artist(self.image)    
-                self.canvas.blit(self.fig.bbox)
-                self.canvas.flush_events()
-            self.plot_data = plot_data
+            self.img.setImage(self.plot_data[::-1,])
+            self.app.processEvents()
         except RuntimeError as e:
             print(e)
             
             
+if __name__ == '__main__':
+    pg.setConfigOption('imageAxisOrder', 'row-major')
+    parser = argparse.ArgumentParser(description='Multicam Beamview.')
+    parser.add_argument('--debug', help='create emulated cameras for debugging', action='store_true')
+    args = parser.parse_args()
+    if args.debug:
+        faulthandler.enable()
+        number_of_emulated_cameras = 20
+        os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
+    tlf = pylon.TlFactory.GetInstance()
+    devices = tlf.EnumerateDevices()
+
+    real_camera = Basler_Camera(devices[0].GetSerialNumber(), TriggerMode.FREERUN, 8192)
+    
+    app = QtWidgets.QApplication([])
+    frame = CameraFrame(None, real_camera, None, app)
+    frame.show()
+    app.exec()
