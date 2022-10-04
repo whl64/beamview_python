@@ -144,7 +144,6 @@ class Basler_Camera(cw.Camera):
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     
     def return_frame(self):
-        print('frame return attempted')
         if self.trigger_mode == TriggerMode.FREERUN:
             with self.cam.RetrieveResult(5000) as res:
                 if res.GrabSucceeded():
