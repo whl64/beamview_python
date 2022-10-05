@@ -75,10 +75,18 @@ class CameraFrame(QtWidgets.QWidget):
         self.fig = pg.GraphicsLayoutWidget()
         self.fig.ci.setContentsMargins(0, 0, 0, 0)
         self.plot = self.fig.addPlot()
+        self.plot.setAspectLocked(True)
+        self.plot.setTitle(' ')
+        
         self.img = pg.ImageItem()
         self.img.setColorMap(cmap)
         self.plot.addItem(self.img)
         self.img.hoverEvent = self.imageHoverEvent
+        
+        self.cbar = pg.ColorBarItem(values=(self.vmin, self.vmax))
+        self.cbar.setImageItem(self.img)
+        self.fig.addItem(self.cbar)
+        
         font = QtGui.QFont()
         font.setPixelSize(16)
         self.plot.getAxis('bottom').setTickFont(font)
@@ -100,10 +108,11 @@ class CameraFrame(QtWidgets.QWidget):
        
         self.lock = threading.Lock()
         
-        self.start_camera()
+        self.stop_camera()
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_frames)
         self.timer.start(100)
+        self.setMinimumHeight(400)
         
     def change_calibration(self, use_calibration, calibration):
         self.use_calibration = use_calibration
@@ -113,7 +122,6 @@ class CameraFrame(QtWidgets.QWidget):
         else:
             self.img.setTransform(self.tr.scale(1, 1))
 
-    
     def close(self):
         self.cleanup()
         self.master.remove_camera(self)
@@ -139,14 +147,11 @@ class CameraFrame(QtWidgets.QWidget):
         # self.master.root.stop_camera(self.cam)
         
     def auto_range(self):
-        self.vmin = np.min(self.plot_data)
-        self.vmax = np.max(self.plot_data)
-        self.axis_update_required = True
+        self.cbar.setLevels(np.min(self.plot_data), np.max(self.plot_data))
         
     def reset_range(self):
-        self.vmin = 0
-        self.vmax = 2**self.bit_depth - 1
-        self.axis_update_required = True
+        self.cbar.setLevels(0, 2**self.bit_depth - 1)
+
 
     def update_frames(self):
         if self.cam.is_grabbing():
@@ -212,7 +217,7 @@ class CameraFrame(QtWidgets.QWidget):
                     
                 self.centroid_label.setText(f'Centroids {unit}: {centroid_x:.1f}, {centroid_y:.1f}')
                 self.sigma_label.setText(f'Sigmas {unit}: {sigma_x:.1f}, {sigma_y:.1f}')
-            self.img.setImage(self.plot_data[::-1,], levels=(self.vmin, self.vmax))
+            self.img.setImage(self.plot_data[::-1,], autoLevels=False)
             self.app.processEvents()
         except RuntimeError as e:
             print(e)
@@ -221,7 +226,7 @@ class CameraFrame(QtWidgets.QWidget):
         """Show the position, pixel, and value under the mouse cursor.
         """
         if event.isExit():
-            self.plot.setTitle("")
+            self.plot.setTitle(' ')
             return
         pos = event.pos()
         i, j = pos.x(), pos.y()

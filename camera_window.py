@@ -20,11 +20,9 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
         self.trigger_thread.start()
         
-        
     def closeEvent(self, event):
         self.app.quit()
-
-            
+     
     def remove_camera(self, camera_frame):
         self.grid.removeWidget(camera_frame)
         del self.camera_frames[camera_frame.cam.serial_number]

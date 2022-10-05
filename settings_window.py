@@ -1,52 +1,57 @@
-import matplotlib as mpl
-
-mpl.use('TkAgg')
 import time
-import tkinter as tk
-import tkinter.filedialog as fd
-from tkinter import ttk
+from PyQt5 import QtWidgets, QtGui
 
 import numpy as np
 
 
-class SettingsWindow(tk.Toplevel):
-    def __init__(self, root):
+class SettingsWindow(QtWidgets.QMainWindow):
+    def __init__(self, root, app):
         super().__init__()
-        self.title('Camera settings')
+        self.app = app
+        self.setMinimumSize(200, 200)
+        self.setWindowTitle('Camera settings')
+        dummy = QtWidgets.QWidget()
+        self.main_layout = QtWidgets.QVBoxLayout()
+        dummy.setLayout(self.main_layout)
         self.base_entry_width = 6
-        self.selection_box = ttk.Combobox(self, state='readonly')
-        self.selection_box.bind('<<ComboboxSelected>>', self.selection_changed)
-        self.selection_box.grid(row=0, column=0)
+        self.selection_box = QtWidgets.QComboBox(self)
+        self.selection_box.setEditable(False)
+    
+        self.selection_box.currentIndexChanged.connect(self.selection_changed)
+        self.main_layout.addWidget(self.selection_box)
         self.active_cameras = []
         self.camera_frames = []
         
         self.running_widgets = []
         self.not_running_widgets = []
         
-        button_frame = ttk.Frame(self)
-        button_frame.grid(row=1, column=0)
+        button_layout = QtWidgets.QHBoxLayout()
         # button to start camera
-        start_button = ttk.Button(button_frame, text='Start', command=self.start_camera)
-        start_button.grid(row=0, column=0)
+        start_button = QtWidgets.QPushButton(text='Start', parent=self)
+        button_layout.addWidget(start_button)
         self.not_running_widgets.append(start_button)
+        start_button.clicked.connect(self.start_camera)
         
         # button to stop camera
-        stop_button = ttk.Button(button_frame, text='Stop', command=self.stop_camera)
-        stop_button.grid(row=0, column=1)
+        stop_button = QtWidgets.QPushButton(text='Stop', parent=self)
+        button_layout.addWidget(stop_button)
         self.running_widgets.append(stop_button)
+        stop_button.clicked.connect(self.stop_camera)
+        
+        self.main_layout.addLayout(button_layout)
         
         self.threshold = 0
         self.calc_threshold = 0
         self.calibration = 1
         
         self.build_stat_frame()
-        self.build_proc_frame()
-        self.build_camera_frame()
-        self.protocol('WM_DELETE_WINDOW', self.cleanup)
+        # self.build_proc_frame()
+        # self.build_camera_frame()
         self.root = root
+        self.setCentralWidget(dummy)
         
-    def cleanup(self):
-        self.root.destroy()
+    def closeEvent(self, event):
+        self.app.quit()
         
     def remove_camera(self, cam_to_remove):
         new_cameras = []
@@ -63,64 +68,74 @@ class SettingsWindow(tk.Toplevel):
         self.selection_box['values'] = tuple([cam.name for cam in self.active_cameras])
         if current_index > -1:
             self.selection_box.current(current_index)
-            self.selection_changed()
 
     def start_camera(self):
         self.active_frame.start_camera()
         for w in self.not_running_widgets:
-            w.configure(state='disable')
+            w.setEnabled(False)
             
         for w in self.running_widgets:
-            w.configure(state='enable')
+            w.setEnabled(True)
         
     def stop_camera(self):
         self.active_frame.stop_camera()
         for w in self.running_widgets:
-            w.configure(state='disabled')
+            w.setEnabled(False)
             
         for w in self.not_running_widgets:
-            w.configure(state='!disabled')
+            w.setEnabled(True)
     
-    def selection_changed(self, *args):
-        self.cam = self.active_cameras[self.selection_box.current()]
-        self.active_frame = self.camera_frames[self.selection_box.current()]
+    def selection_changed(self, i):
+        self.cam = self.active_cameras[i]
+        self.active_frame = self.camera_frames[i]
         if self.cam.is_grabbing():
             for w in self.not_running_widgets:
-                w.configure(state='disable')
+                w.setEnabled(False)
             for w in self.running_widgets:
-                w.configure(state='enable')
+                w.setEnabled(True)
         else:
             for w in self.running_widgets:
-                w.configure(state='disabled')
+                w.setEnabled(False)
             for w in self.not_running_widgets:
-                w.configure(state='!disabled')
+                w.setEnabled(True)
                 
-        self.thresh_check.configure(variable=self.active_frame.use_threshold)
-        self.median_check.configure(variable=self.active_frame.use_median_filter)
-        self.stat_check.configure(variable=self.active_frame.calculate_stats)
-        self.calibration_check.configure(variable=self.active_frame.use_calibration)
-        self.threshold = self.active_frame.threshold
-        self.calc_threshold = self.active_frame.calc_threshold
-        self.threshold_string.set(self.threshold)
-        self.calc_threshold_string.set(self.calc_threshold)
+        # self.thresh_check.configure(variable=self.active_frame.use_threshold)
+        # self.median_check.configure(variable=self.active_frame.use_median_filter)
+        # self.stat_check.configure(variable=self.active_frame.calculate_stats)
+        # self.calibration_check.configure(variable=self.active_frame.use_calibration)
+        # self.threshold = self.active_frame.threshold
+        # self.calc_threshold = self.active_frame.calc_threshold
+        # self.threshold_string.set(self.threshold)
+        # self.calc_threshold_string.set(self.calc_threshold)
         
-        self.exposure_string.set(self.cam.exposure)
-        self.gain_string.set(self.cam.gain)
+        # self.exposure_string.set(self.cam.exposure)
+        # self.gain_string.set(self.cam.gain)
         
-        self.min_x_string.set(self.cam.offset_x)
-        self.min_y_string.set(self.cam.offset_y)
-        self.max_x_string.set(self.cam.offset_x + self.cam.width)
-        self.max_y_string.set(self.cam.offset_y + self.cam.height)
+        # self.min_x_string.set(self.cam.offset_x)
+        # self.min_y_string.set(self.cam.offset_y)
+        # self.max_x_string.set(self.cam.offset_x + self.cam.width)
+        # self.max_y_string.set(self.cam.offset_y + self.cam.height)
         
-        self.manual_min_string.set(self.active_frame.vmin)
-        self.manual_max_string.set(self.active_frame.vmax)
+        # self.manual_min_string.set(self.active_frame.vmin)
+        # self.manual_max_string.set(self.active_frame.vmax)
+        
+    def refresh_levels(self):
+        min_level, max_level = self.active_frame.cbar.levels()
+        self.min_range_entry.setText(int(min_level))
+        self.max_range_entry.setText(int(max_level))
+        
+    def reconnect(self, signal, slot):
+        try:
+            signal.disconnect()
+        except:
+            pass
+        signal.connect(slot)
         
     def add_camera(self, cam, frame):
-        self.selection_box['values'] = (*self.selection_box['values'], cam.name)
-        self.selection_box.set(cam.name)
         self.active_cameras.append(cam)
         self.camera_frames.append(frame)
-        self.selection_changed()
+        self.selection_box.addItem(cam.name)
+        self.selection_box.setCurrentIndex(self.selection_box.count() - 1)
         
     def auto_range(self):
         self.active_frame.auto_range()
@@ -131,31 +146,33 @@ class SettingsWindow(tk.Toplevel):
         self.populate_range_entries()
   
     def build_stat_frame(self):
-        stat_frame = ttk.LabelFrame(self, text='Beam statistics')
-        self.stat_check = ttk.Checkbutton(stat_frame, text='Calculate statistics?')
-        self.stat_check.grid(row=0, column=0, columnspan=2)
-        
+        stat_frame = QtWidgets.QGroupBox(title='Beam statistics', parent=self)
+        stat_layout = QtWidgets.QGridLayout()
+        self.stat_check = QtWidgets.QCheckBox(text='Calculate statistics?', parent=stat_frame)
+        stat_layout.addWidget(self.stat_check, 0, 0, 1, 2)        
 
-        auto_range_button = ttk.Button(stat_frame, command=self.auto_range, text='Auto range')
-        reset_range_button = ttk.Button(stat_frame, command=self.reset_range, text='Reset')
-        auto_range_button.grid(row=1, column=0)
-        reset_range_button.grid(row=1, column=1)
+        auto_range_button = QtWidgets.QPushButton(text='Auto range', parent=stat_frame)
+        reset_range_button = QtWidgets.QPushButton(text='Reset', parent=stat_frame)
+        stat_layout.addWidget(auto_range_button, 1, 0)
+        stat_layout.addWidget(reset_range_button, 1, 1)
         
-        range_frame = ttk.Frame(stat_frame)
-        range_frame.grid(row=2, column=0, columnspan=2)
+        range_layout = QtWidgets.QGridLayout()
+        stat_layout.addLayout(range_layout, 2, 0, 1, 2)
+        manual_range_button = QtWidgets.QPushButton(text='Set manual range', parent=stat_frame)
+        range_layout.addWidget(manual_range_button, 1, 0)
         
-        ttk.Button(range_frame, command=self.manual_range, text='Set manual range').grid(row=1, column=0, padx=(0, 10))
+        range_validator = QtGui.QIntValidator(self)
+        self.min_range_entry = QtWidgets.QLineEdit(parent=stat_frame)
+        self.max_range_entry = QtWidgets.QLineEdit(parent=stat_frame)
+        self.min_range_entry.setValidator(range_validator)
+        self.max_range_entry.setValidator(range_validator)
         
-        self.manual_min_string = tk.IntVar()
-        self.manual_max_string = tk.IntVar()
-        ttk.Entry(range_frame, textvariable=self.manual_min_string, width=self.base_entry_width).grid(row=1, column=1)
-        ttk.Entry(range_frame, textvariable=self.manual_max_string, width=self.base_entry_width).grid(row=1, column=3)
+        range_layout.addWidget(self.min_range_entry, 1, 1)
+        range_layout.addWidget(self.max_range_entry, 1, 3)
         
-        ttk.Label(range_frame, text='-').grid(row=1, column=2)
+        range_layout.addWidget(QtWidgets.QLabel(text='-', parent=stat_frame), 1, 2)
         
         # ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
-        self.calc_threshold_string = tk.IntVar(value=0)
-        self.calc_threshold = 0
         # calc_threshold_entry = ttk.Entry(stat_frame, textvariable=self.calc_threshold_string, validate='focusout',
         #                                  validatecommand=self.calc_threshold_changed, width=self.base_entry_width)
         # calc_threshold_entry.bind('<Return>', self.calc_threshold_changed)
@@ -170,35 +187,21 @@ class SettingsWindow(tk.Toplevel):
         # ttk.Label(stat_frame, textvariable=self.centroid_y_string).grid(row=2, column=1, padx=(5,10))
         # ttk.Label(stat_frame, textvariable=self.size_x_string).grid(row=3, column=0, padx=(10, 5))
         # ttk.Label(stat_frame, textvariable=self.size_y_string).grid(row=3, column=1, padx=(5,10))
-        stat_frame.grid(row=2, column=0)
-        save_button = ttk.Button(self, text='Save image', command=self.save_image)
-        save_button.grid(row=3, column=0)
-        
-    def populate_range_entries(self):
-        self.manual_min_string.set(self.active_frame.vmin)
-        self.manual_max_string.set(self.active_frame.vmax)
+        stat_frame.setLayout(stat_layout)
+        self.main_layout.addWidget(stat_frame)
+        # save_button = QtWidgets.QPushButton(text='Save image', parent=self)
+        # self.main_layout.addWidget(save_button)
+
         
     def manual_range(self):
-        try:
-            manual_min = self.manual_min_string.get()
-            manual_max = self.manual_max_string.get()
-            self.active_frame.vmin = manual_min
-            self.active_frame.vmax = manual_max
-            self.active_frame.axis_update_required = True
-        except tk.TclError:
-            pass
+        min_level = int(self.min_range_entry.text)
+        max_level = int(self.max_range_entry.text)
+        
+        self.active_frame.setLevels(min_level, max_level)
         
         self.populate_range_entries()
-            
-    def save_image(self):
-        filename = fd.asksaveasfilename(parent=self, title='Save image...',
-                                        filetypes=[['PNG', '*.png'], ['Numpy archive', '*.npz'], ['JPEG', '.jpg']],
-                                        defaultextension='.png')
-        if filename.endswith('.npz'):
-            np.savez(filename, plot_data=self.active_frame.plot_data, pixel_calibration=self.calibration)
-        else:
-            self.active_frame.fig.savefig(filename)
-        
+
+
     def build_proc_frame(self):
         # frame that contains image post-processing controls (threshold, median filter)
         proc_frame = ttk.LabelFrame(self, text='Image processing controls')

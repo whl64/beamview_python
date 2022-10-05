@@ -2,6 +2,7 @@ import argparse
 import os
 
 from PyQt5 import QtWidgets, QtGui
+import pyqtgraph as pg
 
 import pypylon.pylon as pylon
 from pypylon import _genicam as gen
@@ -18,6 +19,7 @@ class Beamview(QtWidgets.QMainWindow):
         super().__init__()
         # layout = QtWidgets.QGridLayout()
         # self.setLayout(layout)
+        self.setMinimumSize(200, 200)
         self.setWindowTitle('Camera list')
         self.app = app
         tlf = pylon.TlFactory.GetInstance()
@@ -27,8 +29,7 @@ class Beamview(QtWidgets.QMainWindow):
                 device.SetUserDefinedName(f'Camera {i}')
 
         self.cam_window = CameraWindow(self, app)
-        self.cam_window.show()
-        # self.settings_window = SettingsWindow(self)
+        self.settings_window = SettingsWindow(self, app)
             
         self.camera_list = QtWidgets.QTreeView(self)
         self.camera_list_model = QtGui.QStandardItemModel()
@@ -52,6 +53,9 @@ class Beamview(QtWidgets.QMainWindow):
         self.running_cameras = {}
         
         self.setCentralWidget(self.camera_list)
+        self.settings_window.show()
+        self.cam_window.show()
+
 
             
     def add_camera(self, *args):
@@ -71,7 +75,7 @@ class Beamview(QtWidgets.QMainWindow):
                 cam.name = self.devices[index].GetUserDefinedName()
             self.opened_cameras[serial_number] = cam
             frame = self.cam_window.add_camera(cam)
-            # self.settings_window.add_camera(cam, frame)
+            self.settings_window.add_camera(cam, frame)
 
     def remove_camera(self, cam):
         self.settings_window.remove_camera(cam)
@@ -117,6 +121,7 @@ def main():
         number_of_emulated_cameras = 20
         os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
     app = QtWidgets.QApplication([])
+    pg.setConfigOption('imageAxisOrder', 'row-major')
     beamview = Beamview(app)
     beamview.show()
     app.exec_()
