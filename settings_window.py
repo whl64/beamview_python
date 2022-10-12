@@ -1,8 +1,8 @@
 import time
 from PyQt5 import QtWidgets, QtGui
+from PyQt5.QtCore import Qt
 
 import numpy as np
-
 
 class SettingsWindow(QtWidgets.QMainWindow):
     def __init__(self, root, app):
@@ -13,12 +13,16 @@ class SettingsWindow(QtWidgets.QMainWindow):
         dummy = QtWidgets.QWidget()
         self.main_layout = QtWidgets.QVBoxLayout()
         dummy.setLayout(self.main_layout)
-        self.base_entry_width = 6
+        self.base_entry_width = 100
+        selection_box_layout = QtWidgets.QHBoxLayout()
         self.selection_box = QtWidgets.QComboBox(self)
         self.selection_box.setEditable(False)
+        selection_box_layout.addStretch(1)
+        selection_box_layout.addWidget(self.selection_box, 1)
+        selection_box_layout.addStretch(1)
     
         self.selection_box.currentIndexChanged.connect(self.selection_changed)
-        self.main_layout.addWidget(self.selection_box)
+        self.main_layout.addLayout(selection_box_layout)
         self.active_cameras = []
         self.camera_frames = []
         
@@ -26,6 +30,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.not_running_widgets = []
         
         button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addStretch(2)
+
         # button to start camera
         start_button = QtWidgets.QPushButton(text='Start', parent=self)
         button_layout.addWidget(start_button)
@@ -38,6 +44,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.running_widgets.append(stop_button)
         stop_button.clicked.connect(self.stop_camera)
         
+        button_layout.addStretch(2)
+        
         self.main_layout.addLayout(button_layout)
         
         self.threshold = 0
@@ -45,8 +53,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.calibration = 1
         
         self.build_stat_frame()
-        # self.build_proc_frame()
-        # self.build_camera_frame()
+        self.build_proc_frame()
+        self.build_camera_frame()
         self.root = root
         self.setCentralWidget(dummy)
         
@@ -98,7 +106,9 @@ class SettingsWindow(QtWidgets.QMainWindow):
                 w.setEnabled(False)
             for w in self.not_running_widgets:
                 w.setEnabled(True)
-                
+        
+        self.x_validator.setTop(self.cam.max_width)
+        self.y_validator.setTop(self.cam.max_height)
         # self.thresh_check.configure(variable=self.active_frame.use_threshold)
         # self.median_check.configure(variable=self.active_frame.use_median_filter)
         # self.stat_check.configure(variable=self.active_frame.calculate_stats)
@@ -166,31 +176,18 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.max_range_entry = QtWidgets.QLineEdit(parent=stat_frame)
         self.min_range_entry.setValidator(range_validator)
         self.max_range_entry.setValidator(range_validator)
+        self.min_range_entry.setFixedWidth(self.base_entry_width)
+        self.max_range_entry.setFixedWidth(self.base_entry_width)
         
         range_layout.addWidget(self.min_range_entry, 1, 1)
         range_layout.addWidget(self.max_range_entry, 1, 3)
         
         range_layout.addWidget(QtWidgets.QLabel(text='-', parent=stat_frame), 1, 2)
-        
-        # ttk.Label(stat_frame, text='Threshold for calculations (%): ').grid(row=1, column=0)
-        # calc_threshold_entry = ttk.Entry(stat_frame, textvariable=self.calc_threshold_string, validate='focusout',
-        #                                  validatecommand=self.calc_threshold_changed, width=self.base_entry_width)
-        # calc_threshold_entry.bind('<Return>', self.calc_threshold_changed)
-        # # calc_threshold_entry.grid(row=1, column=1)
-        
-        # self.centroid_x_string = tk.StringVar(value='Centroid x (px): N/A')
-        # self.centroid_y_string = tk.StringVar(value='Centroid y (px): N/A')
-        # self.size_x_string = tk.StringVar(value='Size x (px): N/A')
-        # self.size_y_string = tk.StringVar(value='Size y (px): N/A')
 
-        # ttk.Label(stat_frame, textvariable=self.centroid_x_string).grid(row=2, column=0, padx=(10, 5))
-        # ttk.Label(stat_frame, textvariable=self.centroid_y_string).grid(row=2, column=1, padx=(5,10))
-        # ttk.Label(stat_frame, textvariable=self.size_x_string).grid(row=3, column=0, padx=(10, 5))
-        # ttk.Label(stat_frame, textvariable=self.size_y_string).grid(row=3, column=1, padx=(5,10))
         stat_frame.setLayout(stat_layout)
         self.main_layout.addWidget(stat_frame)
-        # save_button = QtWidgets.QPushButton(text='Save image', parent=self)
-        # self.main_layout.addWidget(save_button)
+        save_button = QtWidgets.QPushButton(text='Save image', parent=self)
+        self.main_layout.addWidget(save_button)
 
         
     def manual_range(self):
@@ -204,94 +201,98 @@ class SettingsWindow(QtWidgets.QMainWindow):
 
     def build_proc_frame(self):
         # frame that contains image post-processing controls (threshold, median filter)
-        proc_frame = ttk.LabelFrame(self, text='Image processing controls')
+        proc_frame = QtWidgets.QGroupBox(title='Image processing controls', parent=self)
+        self.main_layout.addWidget(proc_frame)
+        proc_layout = QtWidgets.QGridLayout()
+        proc_frame.setLayout(proc_layout)
+        self.median_check = QtWidgets.QCheckBox(text='Use median filter?', parent=proc_frame)
+        proc_layout.addWidget(self.median_check, 0, 0)
+        self.thresh_check = QtWidgets.QCheckBox(text='Use threshold?', parent=proc_frame)
+        proc_layout.addWidget(self.thresh_check, 1, 0)
+        proc_layout.addWidget(QtWidgets.QLabel(text='Threshold value (%): ', parent=proc_frame), 1, 1)       
         
-        self.thresh_check = ttk.Checkbutton(proc_frame, text='Use threshold?')
-        self.thresh_check.grid(row=1, column=0, sticky='w')
-        ttk.Label(proc_frame, text='Threshold value (%): ').grid(row=1, column=1)        
-        self.threshold_string = tk.IntVar(value=self.threshold)
-        thresh_entry = ttk.Entry(proc_frame, textvariable=self.threshold_string, validate='focusout',
-                                 validatecommand=self.threshold_changed, width=self.base_entry_width)
-        thresh_entry.bind('<Return>', self.threshold_changed)
-        thresh_entry.grid(row=1, column=2)
-        self.median_check = ttk.Checkbutton(proc_frame, text='Use median filter?')
-        self.median_check.grid(row=0, column=0, sticky='w')
+        self.thresh_entry = QtWidgets.QLineEdit(parent=proc_frame)
+        self.thresh_entry.setValidator(QtGui.QIntValidator(bottom=0, top=100, parent=self))
+        self.thresh_entry.setFixedWidth(self.base_entry_width)
+        proc_layout.addWidget(self.thresh_entry, 1, 2)
         
-        proc_frame.grid(row=4, column=0)
     
     def build_camera_frame(self):
-        self.bottom_frame = ttk.Frame(self)
-        self.bottom_frame.grid(row=5, column=0)
+        bottom_layout = QtWidgets.QGridLayout()
+        self.main_layout.addLayout(bottom_layout)
         
-        # frame that contains exposure time and gain controls
-        acq_frame = ttk.LabelFrame(self.bottom_frame, text='Acquisition controls', padding=(0, 0, 10, 0))        
-        acq_frame.grid(row=0, column=0, padx=(0, 10))
+         # frame that contains exposure time and gain controls
+        acq_frame = QtWidgets.QGroupBox(title='Acquisition controls', parent=self)
+        bottom_layout.addWidget(acq_frame, 0, 0)
+        acq_layout = QtWidgets.QGridLayout()
+        acq_frame.setLayout(acq_layout)
 
-        ttk.Label(acq_frame, text='Exposure time (ms): ').grid(row=0, column=0, sticky='e')
-        self.exposure_string = tk.DoubleVar(value=0)
-        exposure_entry = ttk.Entry(acq_frame, textvariable=self.exposure_string, validate='focusout',
-                                        validatecommand=self.exposure_changed, width=self.base_entry_width)
-        exposure_entry.grid(row=0, column=1)
-        exposure_entry.bind('<Return>', self.exposure_changed)
+        acq_layout.addWidget(QtWidgets.QLabel(text='Exposure time (ms): ', parent=self), 0, 0, Qt.AlignmentFlag.AlignRight)
         
-        ttk.Label(acq_frame, text='Gain: ').grid(row=1, column=0, sticky='e')
-        self.gain_string = tk.IntVar(value=0)
-        gain_entry = ttk.Entry(acq_frame, textvariable=self.gain_string, validate='focusout',
-                               validatecommand=self.gain_changed, width=self.base_entry_width)
-        gain_entry.grid(row=1, column=1)
-        gain_entry.bind('<Return>', self.gain_changed)
-        self.prev_frame_timestamp = time.time()
+        validator = QtGui.QIntValidator(bottom=0, parent=self)
+        self.exposure_entry = QtWidgets.QLineEdit(parent=acq_frame)
+        self.exposure_entry.setValidator(validator)
+        self.exposure_entry.setFixedWidth(self.base_entry_width)
+        acq_layout.addWidget(self.exposure_entry, 0, 1)
         
+        acq_layout.addWidget(QtWidgets.QLabel(text='Gain: ', parent=self), 1, 0, Qt.AlignmentFlag.AlignRight)
+        
+        self.gain_entry = QtWidgets.QLineEdit(parent=acq_frame)
+        self.gain_entry.setValidator(validator)
+        self.gain_entry.setFixedWidth(self.base_entry_width)
+        acq_layout.addWidget(self.gain_entry, 1, 1)
+        
+        acq_layout.setColumnStretch(2, 100)
         
         # frame that contains AOI controls
-        size_frame = ttk.LabelFrame(self.bottom_frame, text='AOI controls', padding=(10, 0, 0, 0))
-        size_frame.grid(row=0, column=1, padx=(10, 10))
+        size_frame = QtWidgets.QGroupBox(title='AOI controls', parent=self)
+        bottom_layout.addWidget(size_frame, 1, 0)
+        size_layout = QtWidgets.QGridLayout()
+        size_frame.setLayout(size_layout)
         
-        ttk.Label(size_frame, text='x:').grid(row=0, column=0)
-        ttk.Label(size_frame, text='-').grid(row=0, column=2)
-        ttk.Label(size_frame, text='y:').grid(row=1, column=0)
-        ttk.Label(size_frame, text='-').grid(row=1, column=2)
+        size_layout.addWidget(QtWidgets.QLabel(text='x:', parent=size_frame), 0, 0)
+        size_layout.addWidget(QtWidgets.QLabel(text='-', parent=size_frame), 0, 2)
+        size_layout.addWidget(QtWidgets.QLabel(text='y:', parent=size_frame), 1, 0)
+        size_layout.addWidget(QtWidgets.QLabel(text='-', parent=size_frame), 1, 2)
         
-        ttk.Button(size_frame, command=self.reset_size, text='Reset').grid(row=0, column=4, rowspan=2)
-        
-        self.min_x_string = tk.IntVar(value=0)
-        self.min_y_string = tk.IntVar(value=0)
-        self.max_x_string = tk.IntVar(value=0)
-        self.max_y_string = tk.IntVar(value=0)
+        self.reset_size_button = QtWidgets.QPushButton(text='Reset', parent=self)
+        size_layout.addWidget(self.reset_size_button, 0, 4, 2, 2)
 
-        min_x_entry = ttk.Entry(size_frame, textvariable=self.min_x_string, validate='focusout',
-                                validatecommand=self.size_changed, width=self.base_entry_width)
-        max_x_entry = ttk.Entry(size_frame, textvariable=self.max_x_string, validate='focusout',
-                                validatecommand=self.size_changed, width=self.base_entry_width)
-        min_y_entry = ttk.Entry(size_frame, textvariable=self.min_y_string, validate='focusout',
-                        validatecommand=self.size_changed, width=self.base_entry_width)
-        max_y_entry = ttk.Entry(size_frame, textvariable=self.max_y_string, validate='focusout',
-                                validatecommand=self.size_changed, width=self.base_entry_width)
+        self.x_validator = QtGui.QIntValidator(bottom=0, top=0, parent=self)
+        self.y_validator = QtGui.QIntValidator(bottom=0, top=0, parent=self)
         
-        min_x_entry.bind('<Return>', self.size_changed)
-        min_y_entry.bind('<Return>', self.size_changed, add='+')
-        max_x_entry.bind('<Return>', self.size_changed, add='+')
-        max_y_entry.bind('<Return>', self.size_changed, add='+')
+        self.min_x_entry = QtWidgets.QLineEdit(parent=size_frame)
+        self.min_x_entry.setValidator(self.x_validator)
+        self.max_x_entry = QtWidgets.QLineEdit(parent=size_frame)
+        self.max_x_entry.setValidator(self.x_validator)
+        self.min_y_entry = QtWidgets.QLineEdit(parent=size_frame)
+        self.min_y_entry.setValidator(self.y_validator)
+        self.max_y_entry = QtWidgets.QLineEdit(parent=size_frame)
+        self.max_y_entry.setValidator(self.y_validator)
         
-        min_x_entry.grid(row=0, column=1)
-        max_x_entry.grid(row=0, column=3)
-        min_y_entry.grid(row=1, column=1)
-        max_y_entry.grid(row=1, column=3)    
+        self.min_x_entry.setFixedWidth(self.base_entry_width)
+        self.max_x_entry.setFixedWidth(self.base_entry_width)
+        self.min_y_entry.setFixedWidth(self.base_entry_width)
+        self.max_y_entry.setFixedWidth(self.base_entry_width)
         
-        self.not_running_widgets += size_frame.winfo_children()
+        size_layout.addWidget(self.min_x_entry, 0, 1)
+        size_layout.addWidget(self.max_x_entry, 0, 3)
+        size_layout.addWidget(self.min_y_entry, 1, 1)
+        size_layout.addWidget(self.max_y_entry, 1, 3)
         
-        calibration_frame = ttk.Frame(self.bottom_frame)
-        calibration_frame.grid(row=1, column=0, columnspan=2)
+        self.not_running_widgets.append(size_frame)
         
-        self.calibration_check = ttk.Checkbutton(calibration_frame, text='Use pixel calibration? (um/px)',
-                                                 command=self.calibration_changed)
-        self.calibration_check.grid(row=0, column=0)
+        calibration_layout = QtWidgets.QGridLayout()
+        bottom_layout.addLayout(calibration_layout, 2, 0, 1, 2)
         
-        self.calibration_string = tk.DoubleVar(value=1)
-        calibration_entry = ttk.Entry(calibration_frame, textvariable=self.calibration_string, validate='focusout',
-                                      validatecommand=self.calibration_changed, width=self.base_entry_width)
-        calibration_entry.grid(row=0, column=1)
-        calibration_entry.bind('<Return>', self.calibration_changed)
+        self.calibration_check = QtWidgets.QCheckBox(text='Use pixel calibration? (um/px)', parent=self)
+        calibration_layout.addWidget(self.calibration_check, 0, 0)
+        
+        calibration_validator = QtGui.QDoubleValidator(bottom=1e-12, parent=self)
+        self.calibration_entry = QtWidgets.QLineEdit(parent=self)
+        self.calibration_entry.setValidator(calibration_validator)
+        self.calibration_entry.setFixedWidth(self.base_entry_width)
+        calibration_layout.addWidget(self.calibration_entry, 0, 1)
     
     def calibration_changed(self, *args):
         try:

@@ -139,12 +139,12 @@ class CameraFrame(QtWidgets.QWidget):
             self.cam.request_frame()
         except:
             print('trigger timed out')
-        # self.master.root.start_camera(self.cam)
+        self.master.root.start_camera(self.cam)
         
     def stop_camera(self):
         self.cam.stop_grabbing()
         self.status_label.setText('Stopped.')
-        # self.master.root.stop_camera(self.cam)
+        self.master.root.stop_camera(self.cam)
         
     def auto_range(self):
         self.cbar.setLevels(np.min(self.plot_data), np.max(self.plot_data))
