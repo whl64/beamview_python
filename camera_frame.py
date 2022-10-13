@@ -127,6 +127,7 @@ class CameraFrame(QtWidgets.QWidget):
     def change_offset(self, x_offset, y_offset):
         self.x_offset = x_offset
         self.y_offset = y_offset
+        self.update_transform()
 
     def update_transform(self):
         self.tr.reset()
