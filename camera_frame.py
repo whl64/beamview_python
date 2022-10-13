@@ -37,7 +37,7 @@ class CameraFrame(QtWidgets.QWidget):
                 
         info_layout_0.addWidget(QtWidgets.QLabel(text=self.cam.name, parent=self))
         
-        self.status_label = QtWidgets.QLabel('Stopped.')
+        self.status_label = QtWidgets.QLabel('Stopped.', parent=self)
         info_layout_0.addWidget(self.status_label)
         
         self.frame_time_label = QtWidgets.QLabel(text='0.00 s', parent=self)
@@ -71,6 +71,9 @@ class CameraFrame(QtWidgets.QWidget):
         self.vmin = 0
         self.vmax = 2**self.bit_depth - 1
         
+        self.x_offset = 0
+        self.y_offset = 0
+        
         cmap = pg.colormap.getFromMatplotlib('viridis')
         self.fig = pg.GraphicsLayoutWidget()
         self.fig.ci.setContentsMargins(0, 0, 0, 0)
@@ -103,6 +106,8 @@ class CameraFrame(QtWidgets.QWidget):
         self.use_threshold = False
         self.use_calibration = False
         self.frame_available = False
+        self.centroid_label.setEnabled(True)
+        self.sigma_label.setEnabled(True)
 
         self.calibration = 1
        
@@ -117,10 +122,19 @@ class CameraFrame(QtWidgets.QWidget):
     def change_calibration(self, use_calibration, calibration):
         self.use_calibration = use_calibration
         self.calibration = calibration
+        self.update_transform()
+        
+    def change_offset(self, x_offset, y_offset):
+        self.x_offset = x_offset
+        self.y_offset = y_offset
+
+    def update_transform(self):
+        self.tr.reset()
+        self.tr.translate(self.x_offset, self.y_offset)
         if self.use_calibration:
-            self.img.setTransform(self.tr.scale(calibration, calibration))
-        else:
-            self.img.setTransform(self.tr.scale(1, 1))
+            self.tr.scale(self.calibration, self.calibration)
+        self.img.setTransform(self.tr)
+
 
     def close(self):
         self.cleanup()
@@ -147,11 +161,10 @@ class CameraFrame(QtWidgets.QWidget):
         self.master.root.stop_camera(self.cam)
         
     def auto_range(self):
-        self.cbar.setLevels(np.min(self.plot_data), np.max(self.plot_data))
+        self.cbar.setLevels((np.min(self.plot_data), np.max(self.plot_data)))
         
     def reset_range(self):
-        self.cbar.setLevels(0, 2**self.bit_depth - 1)
-
+        self.cbar.setLevels((0, 2**self.bit_depth - 1))
 
     def update_frames(self):
         if self.cam.is_grabbing():
@@ -189,7 +202,8 @@ class CameraFrame(QtWidgets.QWidget):
             if self.use_threshold:
                 max_data = np.max(plot_data)
                 plot_data[plot_data < max_data*self.threshold/100] = 0
-                
+
+
             if self.calculate_stats:
                 calc_plot_data = np.copy(plot_data)
                 max_data = np.max(calc_plot_data)
@@ -217,6 +231,19 @@ class CameraFrame(QtWidgets.QWidget):
                     
                 self.centroid_label.setText(f'Centroids {unit}: {centroid_x:.1f}, {centroid_y:.1f}')
                 self.sigma_label.setText(f'Sigmas {unit}: {sigma_x:.1f}, {sigma_y:.1f}')
+                self.centroid_label.setEnabled(True)
+                self.sigma_label.setEnabled(True)
+            else:
+                self.centroid_label.setEnabled(False)
+                self.sigma_label.setEnabled(False)
+            if not self.use_threshold or self.threshold < 90:
+                print('--------------------------------')
+                print(np.max(plot_data))            
+                print(self.use_threshold)
+                print(self.threshold)
+                print('--------------------------------')
+            if np.count_nonzero(np.logical_and(plot_data > 0, plot_data < self.threshold/100 * np.max(plot_data))) > 0:
+                print('threshold failed')
             self.img.setImage(self.plot_data[::-1,], autoLevels=False)
             self.app.processEvents()
         except RuntimeError as e:
@@ -235,7 +262,7 @@ class CameraFrame(QtWidgets.QWidget):
         val = self.plot_data[i, j]
         ppos = self.img.mapToParent(pos)
         x, y = ppos.x(), ppos.y()
-        self.plot.setTitle("pos: (%0.1f, %0.1f)  pixel: (%d, %d)  value: %.3g" % (x, y, i, j, val))
+        self.plot.setTitle("pos: (%0.1f, %0.1f)<br>pixel: (%d, %d)  value: %.3g" % (x, y, i, j, val))
         
 
 # Monkey-patch the image to use our custom hover function. 

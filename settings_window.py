@@ -1,4 +1,5 @@
-import time
+import pyqtgraph as pg
+import pyqtgraph.exporters as exp
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt
 
@@ -57,6 +58,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.build_camera_frame()
         self.root = root
         self.setCentralWidget(dummy)
+        self.app.focusChanged.connect(self.focus_changed)
         
     def closeEvent(self, event):
         self.app.quit()
@@ -64,18 +66,15 @@ class SettingsWindow(QtWidgets.QMainWindow):
     def remove_camera(self, cam_to_remove):
         new_cameras = []
         new_frames = []
-        for cam, frame in zip(self.active_cameras, self.camera_frames):
+        for i, (cam, frame) in enumerate(zip(self.active_cameras, self.camera_frames)):
             if cam != cam_to_remove:
                 new_cameras.append(cam)
                 new_frames.append(frame)
+            else:
+                removed_index = i
         self.active_cameras = new_cameras
         self.camera_frames = new_frames       
-        current_index = self.selection_box.current()
-        if current_index == len(self.active_cameras):
-            current_index -= 1
-        self.selection_box['values'] = tuple([cam.name for cam in self.active_cameras])
-        if current_index > -1:
-            self.selection_box.current(current_index)
+        self.selection_box.removeItem(removed_index)
 
     def start_camera(self):
         self.active_frame.start_camera()
@@ -91,9 +90,11 @@ class SettingsWindow(QtWidgets.QMainWindow):
             w.setEnabled(False)
             
         for w in self.not_running_widgets:
-            w.setEnabled(True)
+            w.setEnabled(True)        
     
     def selection_changed(self, i):
+        if len(self.active_cameras) < 1:
+            return
         self.cam = self.active_cameras[i]
         self.active_frame = self.camera_frames[i]
         if self.cam.is_grabbing():
@@ -109,67 +110,60 @@ class SettingsWindow(QtWidgets.QMainWindow):
         
         self.x_validator.setTop(self.cam.max_width)
         self.y_validator.setTop(self.cam.max_height)
-        # self.thresh_check.configure(variable=self.active_frame.use_threshold)
-        # self.median_check.configure(variable=self.active_frame.use_median_filter)
-        # self.stat_check.configure(variable=self.active_frame.calculate_stats)
-        # self.calibration_check.configure(variable=self.active_frame.use_calibration)
-        # self.threshold = self.active_frame.threshold
-        # self.calc_threshold = self.active_frame.calc_threshold
-        # self.threshold_string.set(self.threshold)
-        # self.calc_threshold_string.set(self.calc_threshold)
         
-        # self.exposure_string.set(self.cam.exposure)
-        # self.gain_string.set(self.cam.gain)
+        self.calibration_check.setChecked(self.active_frame.use_calibration)
+        self.calibration_entry.setText(str(self.active_frame.calibration))
         
-        # self.min_x_string.set(self.cam.offset_x)
-        # self.min_y_string.set(self.cam.offset_y)
-        # self.max_x_string.set(self.cam.offset_x + self.cam.width)
-        # self.max_y_string.set(self.cam.offset_y + self.cam.height)
+        self.stat_check.setChecked(self.active_frame.calculate_stats)
+        self.populate_range_entries()
         
-        # self.manual_min_string.set(self.active_frame.vmin)
-        # self.manual_max_string.set(self.active_frame.vmax)
+        self.thresh_check.setChecked(self.active_frame.use_threshold)
+        self.median_check.setChecked(self.active_frame.use_median_filter)
         
-    def refresh_levels(self):
+        self.thresh_entry.setText(str(self.active_frame.threshold))
+        
+        self.exposure_entry.setText(str(self.cam.exposure))
+        self.gain_entry.setText(str(self.cam.gain))
+        
+        self.min_x_entry.setText(str(self.cam.offset_x))
+        self.min_y_entry.setText(str(self.cam.offset_y))
+        self.max_x_entry.setText(str(self.cam.offset_x + self.cam.width))
+        self.max_y_entry.setText(str(self.cam.offset_y + self.cam.height))
+        
+        self.min_range_entry.setText(str(self.active_frame.vmin))
+        self.max_range_entry.setText(str(self.active_frame.vmax))
+        
+    def populate_range_entries(self):
         min_level, max_level = self.active_frame.cbar.levels()
-        self.min_range_entry.setText(int(min_level))
-        self.max_range_entry.setText(int(max_level))
-        
-    def reconnect(self, signal, slot):
-        try:
-            signal.disconnect()
-        except:
-            pass
-        signal.connect(slot)
+        self.min_range_entry.setText(str(int(min_level)))
+        self.max_range_entry.setText(str(int(max_level)))
         
     def add_camera(self, cam, frame):
         self.active_cameras.append(cam)
         self.camera_frames.append(frame)
         self.selection_box.addItem(cam.name)
         self.selection_box.setCurrentIndex(self.selection_box.count() - 1)
-        
-    def auto_range(self):
-        self.active_frame.auto_range()
-        self.populate_range_entries()
-
-    def reset_range(self):
-        self.active_frame.reset_range()
-        self.populate_range_entries()
   
     def build_stat_frame(self):
         stat_frame = QtWidgets.QGroupBox(title='Beam statistics', parent=self)
         stat_layout = QtWidgets.QGridLayout()
         self.stat_check = QtWidgets.QCheckBox(text='Calculate statistics?', parent=stat_frame)
+        self.stat_check.clicked.connect(self.stat_check_clicked)
         stat_layout.addWidget(self.stat_check, 0, 0, 1, 2)        
 
         auto_range_button = QtWidgets.QPushButton(text='Auto range', parent=stat_frame)
+        auto_range_button.clicked.connect(self.auto_range)
         reset_range_button = QtWidgets.QPushButton(text='Reset', parent=stat_frame)
+        reset_range_button.clicked.connect(self.reset_range)
         stat_layout.addWidget(auto_range_button, 1, 0)
         stat_layout.addWidget(reset_range_button, 1, 1)
         
         range_layout = QtWidgets.QGridLayout()
         stat_layout.addLayout(range_layout, 2, 0, 1, 2)
         manual_range_button = QtWidgets.QPushButton(text='Set manual range', parent=stat_frame)
+        manual_range_button.clicked.connect(self.manual_range)
         range_layout.addWidget(manual_range_button, 1, 0)
+        
         
         range_validator = QtGui.QIntValidator(self)
         self.min_range_entry = QtWidgets.QLineEdit(parent=stat_frame)
@@ -187,15 +181,39 @@ class SettingsWindow(QtWidgets.QMainWindow):
         stat_frame.setLayout(stat_layout)
         self.main_layout.addWidget(stat_frame)
         save_button = QtWidgets.QPushButton(text='Save image', parent=self)
+        save_button.clicked.connect(self.save_image)
         self.main_layout.addWidget(save_button)
+        
+    def save_image(self):
+        filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save image...', '', 'PNG (*.png);; JPEG (*.jpg);; npz files (*.npz)',
+                                                         'PNG (*.png)')[0]
+        
+        if filename.endswith('.npz'):
+            np.savez(filename, plot_data=self.active_frame.plot_data, pixel_calibration=self.calibration)
+        else:
+            exporter = exp.ImageExporter(self.active_frame.plot)
+            exporter.export(filename)
+
+
+    def stat_check_clicked(self, checked):
+        self.active_frame.calculate_stats = checked
+    
+        
+    def auto_range(self):
+        self.active_frame.auto_range()
+        self.populate_range_entries()
+
+
+    def reset_range(self):
+        self.active_frame.reset_range()
+        self.populate_range_entries()
 
         
     def manual_range(self):
-        min_level = int(self.min_range_entry.text)
-        max_level = int(self.max_range_entry.text)
+        min_level = int(self.min_range_entry.text())
+        max_level = int(self.max_range_entry.text())
         
-        self.active_frame.setLevels(min_level, max_level)
-        
+        self.active_frame.cbar.setLevels((min_level, max_level))
         self.populate_range_entries()
 
 
@@ -206,16 +224,27 @@ class SettingsWindow(QtWidgets.QMainWindow):
         proc_layout = QtWidgets.QGridLayout()
         proc_frame.setLayout(proc_layout)
         self.median_check = QtWidgets.QCheckBox(text='Use median filter?', parent=proc_frame)
+        self.median_check.clicked.connect(self.median_check_click)
         proc_layout.addWidget(self.median_check, 0, 0)
         self.thresh_check = QtWidgets.QCheckBox(text='Use threshold?', parent=proc_frame)
         proc_layout.addWidget(self.thresh_check, 1, 0)
-        proc_layout.addWidget(QtWidgets.QLabel(text='Threshold value (%): ', parent=proc_frame), 1, 1)       
+        self.thresh_check.clicked.connect(self.thresh_check_click)
+        proc_layout.addWidget(QtWidgets.QLabel(text='Threshold value (%): ', parent=proc_frame), 1, 1)      
         
         self.thresh_entry = QtWidgets.QLineEdit(parent=proc_frame)
-        self.thresh_entry.setValidator(QtGui.QIntValidator(bottom=0, top=100, parent=self))
+        self.thresh_entry.setValidator(QtGui.QDoubleValidator(bottom=0, top=100, parent=self))
         self.thresh_entry.setFixedWidth(self.base_entry_width)
+        self.thresh_entry.returnPressed.connect(self.threshold_changed)
         proc_layout.addWidget(self.thresh_entry, 1, 2)
         
+    def median_check_click(self, checked):
+        self.active_frame.use_median_filter = checked
+        
+    def thresh_check_click(self, checked):
+        self.active_frame.use_threshold = checked
+        
+    def threshold_changed(self):
+        self.active_frame.threshold = float(self.thresh_entry.text())
     
     def build_camera_frame(self):
         bottom_layout = QtWidgets.QGridLayout()
@@ -233,6 +262,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.exposure_entry = QtWidgets.QLineEdit(parent=acq_frame)
         self.exposure_entry.setValidator(validator)
         self.exposure_entry.setFixedWidth(self.base_entry_width)
+        self.exposure_entry.returnPressed.connect(self.exposure_changed)
         acq_layout.addWidget(self.exposure_entry, 0, 1)
         
         acq_layout.addWidget(QtWidgets.QLabel(text='Gain: ', parent=self), 1, 0, Qt.AlignmentFlag.AlignRight)
@@ -240,6 +270,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.gain_entry = QtWidgets.QLineEdit(parent=acq_frame)
         self.gain_entry.setValidator(validator)
         self.gain_entry.setFixedWidth(self.base_entry_width)
+        self.gain_entry.returnPressed.connect(self.gain_changed)
         acq_layout.addWidget(self.gain_entry, 1, 1)
         
         acq_layout.setColumnStretch(2, 100)
@@ -256,6 +287,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
         size_layout.addWidget(QtWidgets.QLabel(text='-', parent=size_frame), 1, 2)
         
         self.reset_size_button = QtWidgets.QPushButton(text='Reset', parent=self)
+        self.reset_size_button.clicked.connect(self.reset_size)
         size_layout.addWidget(self.reset_size_button, 0, 4, 2, 2)
 
         self.x_validator = QtGui.QIntValidator(bottom=0, top=0, parent=self)
@@ -269,6 +301,11 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.min_y_entry.setValidator(self.y_validator)
         self.max_y_entry = QtWidgets.QLineEdit(parent=size_frame)
         self.max_y_entry.setValidator(self.y_validator)
+        
+        self.min_x_entry.returnPressed.connect(self.size_changed)
+        self.min_y_entry.returnPressed.connect(self.size_changed)
+        self.max_x_entry.returnPressed.connect(self.size_changed)
+        self.max_y_entry.returnPressed.connect(self.size_changed)
         
         self.min_x_entry.setFixedWidth(self.base_entry_width)
         self.max_x_entry.setFixedWidth(self.base_entry_width)
@@ -286,121 +323,90 @@ class SettingsWindow(QtWidgets.QMainWindow):
         bottom_layout.addLayout(calibration_layout, 2, 0, 1, 2)
         
         self.calibration_check = QtWidgets.QCheckBox(text='Use pixel calibration? (um/px)', parent=self)
+        self.calibration_check.clicked.connect(self.calibration_changed)
         calibration_layout.addWidget(self.calibration_check, 0, 0)
         
         calibration_validator = QtGui.QDoubleValidator(bottom=1e-12, parent=self)
         self.calibration_entry = QtWidgets.QLineEdit(parent=self)
         self.calibration_entry.setValidator(calibration_validator)
         self.calibration_entry.setFixedWidth(self.base_entry_width)
+        self.calibration_entry.returnPressed.connect(self.calibration_changed)
         calibration_layout.addWidget(self.calibration_entry, 0, 1)
+        
+    def focus_changed(self, old, new):
+        if old == self.calibration_entry:
+            self.calibration_changed()
+        if old == self.thresh_entry:
+            self.threshold_changed()
+        if old == self.min_x_entry or old == self.min_y_entry or old == self.max_x_entry or old == self.max_y_entry:
+            self.size_changed()
+        if old == self.gain_entry:
+            self.gain_changed()
+        if old == self.exposure_entry:
+            self.exposure_changed()
     
     def calibration_changed(self, *args):
-        try:
-            self.calibration = self.calibration_string.get()
-            if self.calibration < 0:
-                self.calibration = 0
-        except tk.TclError:
-            pass
-        
-        self.calibration_string.set(self.calibration)
-        self.active_frame.pixel_calibration = self.calibration
-        self.active_frame.axis_update_required = True
-    
-    def calc_threshold_changed(self, *args):
-        try:
-            self.calc_threshold = self.calc_threshold_string.get()
-            if self.calc_threshold < 0:
-                self.calc_threshold = 0
-            elif self.calc_threshold > 100:
-                self.calc_threshold = 100
-        except tk.TclError:
-            pass
-        
-        self.calc_threshold_string.set(self.calc_threshold)
-        self.active_frame.calc_threshold = self.calc_threshold
-    
-    def threshold_changed(self, *args):
-        try:
-            self.threshold = self.threshold_string.get()
-            
-            if self.threshold < 0:
-                self.threshold = 0
-            elif self.threshold > 100:
-                self.threshold = 100
-        except tk.TclError:
-            pass
-        
-        self.threshold_string.set(self.threshold)
-        self.active_frame.threshold = self.threshold
+        self.active_frame.change_calibration(self.calibration_check.isChecked(), float(self.calibration_entry.text()))
         
     def reset_size(self):
-        self.min_x_string.set(0)
-        self.min_y_string.set(0)
-        self.max_x_string.set(self.cam.max_width)
-        self.max_y_string.set(self.cam.max_height)
+        self.min_x_entry.setText('0')
+        self.min_y_entry.setText('0')
+        self.max_x_entry.setText(str(self.cam.max_width))
+        self.max_y_entry.setText(str(self.cam.max_height))
         self.size_changed()
         
     def size_changed(self, *args):
-        try:
-            min_x = self.min_x_string.get()
-            min_y = self.min_y_string.get()
-            max_x = self.max_x_string.get()
-            max_y = self.max_y_string.get()
-            
-            if min_x < 0:
-                min_x = 0
-            elif min_x > self.cam.max_width - 4:
-                min_x = self.cam.max_width - 4
-                
-            if min_y < 0:
-                min_y = 0
-            elif min_y > self.cam.max_height - 4:
-                min_y = self.cam.max_height - 4
-            
-            if max_x - min_x < 4:
-                max_x = min_x + 4
-            elif max_x > self.cam.max_width:
-                max_x = self.cam.max_width
-            
-            if max_y - min_y < 4:
-                max_y = min_y + 4
-            elif max_y > self.cam.max_height:
-                max_y = self.cam.max_height
-                
-            if min_x > self.cam.offset_x:
-                self.cam.width = max_x - min_x
-                self.cam.offset_x = min_x
-            else:
-                self.cam.offset_x = min_x
-                self.cam.width = max_x - min_x
-            if min_y > self.cam.offset_y:
-                self.cam.height = max_y - min_y
-                self.cam.offset_y = min_y
-            else:
-                self.cam.offset_y = min_y   
-                self.cam.height = max_y - min_y
-        except tk.TclError:
-            pass
+        min_x = int(self.min_x_entry.text())
+        min_y = int(self.min_y_entry.text())
+        max_x = int(self.max_x_entry.text())
+        max_y = int(self.max_y_entry.text())
         
-        self.min_x_string.set(self.cam.offset_x)
-        self.min_y_string.set(self.cam.offset_y)
-        self.max_x_string.set(self.cam.offset_x + self.cam.width)
-        self.max_y_string.set(self.cam.offset_y + self.cam.height)
+        if min_x < 0:
+            min_x = 0
+        elif min_x > self.cam.max_width - 4:
+            min_x = self.cam.max_width - 4
+            
+        if min_y < 0:
+            min_y = 0
+        elif min_y > self.cam.max_height - 4:
+            min_y = self.cam.max_height - 4
         
-        self.active_frame.axis_update_required = True
+        if max_x - min_x < 4:
+            max_x = min_x + 4
+        elif max_x > self.cam.max_width:
+            max_x = self.cam.max_width
+        
+        if max_y - min_y < 4:
+            max_y = min_y + 4
+        elif max_y > self.cam.max_height:
+            max_y = self.cam.max_height
+            
+        if min_x > self.cam.offset_x:
+            self.cam.width = max_x - min_x
+            self.cam.offset_x = min_x
+        else:
+            self.cam.offset_x = min_x
+            self.cam.width = max_x - min_x
+        if min_y > self.cam.offset_y:
+            self.cam.height = max_y - min_y
+            self.cam.offset_y = min_y
+        else:
+            self.cam.offset_y = min_y   
+            self.cam.height = max_y - min_y
+        
+        self.min_x_entry.setText(str(self.cam.offset_x))
+        self.min_y_entry.setText(str(self.cam.offset_y))
+        self.max_x_entry.setText(str(self.cam.offset_x + self.cam.width))
+        self.max_y_entry.setText(str(self.cam.offset_y + self.cam.height))
+        
+        self.active_frame.change_offset(self.cam.offset_x, self.cam.offset_y)
 
     def gain_changed(self, *args):
-        try:
-            self.cam.gain = self.gain_string.get()
-        except tk.TclError:
-            pass
-    
-        self.gain_string.set(self.cam.gain)
+        self.cam.gain = int(self.gain_entry.text())
+
+        self.gain_entry.setText(self.cam.gain)
     
     def exposure_changed(self, *args):
-        try:
-            self.cam.exposure = self.exposure_string.get()
-        except tk.TclError:
-            pass
-    
-        self.exposure_string.set(self.cam.exposure)
+        self.cam.exposure = int(self.exposure_entry.text())
+
+        self.exposure_entry.setText(self.cam.exposure)

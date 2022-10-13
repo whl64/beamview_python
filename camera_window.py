@@ -25,12 +25,14 @@ class CameraWindow(QtWidgets.QMainWindow):
      
     def remove_camera(self, camera_frame):
         self.grid.removeWidget(camera_frame)
+        camera_frame.setParent(None)
         del self.camera_frames[camera_frame.cam.serial_number]
         self.regrid()
         
     def regrid(self):                
         for i, frame in enumerate(self.camera_frames.values()):
             self.assign_frame_to_grid(frame, i)
+        self.adjustSize()
         
     def assign_frame_to_grid(self, frame, index):
         assigned_row = index % 2
