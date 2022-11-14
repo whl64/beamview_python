@@ -66,10 +66,11 @@ class Beamview(QtWidgets.QMainWindow):
                 cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size)
             except gen.RuntimeException:
                 error_box = QtWidgets.QMessageBox()
-                error_box.setIcon(QtWidgets.QMessageBox.Error)
+                error_box.setIcon(QtWidgets.QMessageBox.Critical)
                 error_box.setWindowTitle('Error')
                 error_box.setText('Error: Camera in use by another application.')
                 error_box.show()
+                error_box.exec_()
                 return
             if cam.name == '':
                 cam.name = self.devices[index].GetUserDefinedName()
