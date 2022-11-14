@@ -237,15 +237,8 @@ class CameraFrame(QtWidgets.QWidget):
             else:
                 self.centroid_label.setEnabled(False)
                 self.sigma_label.setEnabled(False)
-            if not self.use_threshold or self.threshold < 90:
-                print('--------------------------------')
-                print(np.max(plot_data))            
-                print(self.use_threshold)
-                print(self.threshold)
-                print('--------------------------------')
-            if np.count_nonzero(np.logical_and(plot_data > 0, plot_data < self.threshold/100 * np.max(plot_data))) > 0:
-                print('threshold failed')
-            self.img.setImage(self.plot_data[::-1,], autoLevels=False)
+
+            self.img.setImage(plot_data[::-1,], autoLevels=False)
             self.app.processEvents()
         except RuntimeError as e:
             print(e)

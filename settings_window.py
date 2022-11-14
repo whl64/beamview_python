@@ -145,25 +145,34 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.selection_box.setCurrentIndex(self.selection_box.count() - 1)
   
     def build_stat_frame(self):
+        stat_group_box_row = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(stat_group_box_row)
         stat_frame = QtWidgets.QGroupBox(title='Beam statistics', parent=self)
-        stat_layout = QtWidgets.QGridLayout()
+        stat_layout = QtWidgets.QVBoxLayout()
+        stat_frame.setLayout(stat_layout)
+        stat_group_box_row.addWidget(stat_frame)
+        stat_group_box_row.addStretch(1)
         self.stat_check = QtWidgets.QCheckBox(text='Calculate statistics?', parent=stat_frame)
         self.stat_check.clicked.connect(self.stat_check_clicked)
-        stat_layout.addWidget(self.stat_check, 0, 0, 1, 2)        
+        stat_calc_layout = QtWidgets.QHBoxLayout()
+        stat_layout.addLayout(stat_calc_layout)
+        stat_calc_layout.addWidget(self.stat_check)
+        stat_calc_layout.addStretch(1)
 
         auto_range_button = QtWidgets.QPushButton(text='Auto range', parent=stat_frame)
         auto_range_button.clicked.connect(self.auto_range)
         reset_range_button = QtWidgets.QPushButton(text='Reset', parent=stat_frame)
         reset_range_button.clicked.connect(self.reset_range)
-        stat_layout.addWidget(auto_range_button, 1, 0)
-        stat_layout.addWidget(reset_range_button, 1, 1)
+        range_layout = QtWidgets.QHBoxLayout()
+        range_layout.addWidget(auto_range_button)
+        range_layout.addWidget(reset_range_button)
+        range_layout.addStretch(1)
+        stat_layout.addLayout(range_layout)
         
-        range_layout = QtWidgets.QGridLayout()
-        stat_layout.addLayout(range_layout, 2, 0, 1, 2)
+        manual_range_layout = QtWidgets.QHBoxLayout()
         manual_range_button = QtWidgets.QPushButton(text='Set manual range', parent=stat_frame)
         manual_range_button.clicked.connect(self.manual_range)
-        range_layout.addWidget(manual_range_button, 1, 0)
-        
+        manual_range_layout.addWidget(manual_range_button)
         
         range_validator = QtGui.QIntValidator(self)
         self.min_range_entry = QtWidgets.QLineEdit(parent=stat_frame)
@@ -173,16 +182,19 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.min_range_entry.setFixedWidth(self.base_entry_width)
         self.max_range_entry.setFixedWidth(self.base_entry_width)
         
-        range_layout.addWidget(self.min_range_entry, 1, 1)
-        range_layout.addWidget(self.max_range_entry, 1, 3)
+        manual_range_layout.addWidget(self.min_range_entry)
+        manual_range_layout.addWidget(QtWidgets.QLabel(text='-', parent=stat_frame))
+        manual_range_layout.addWidget(self.max_range_entry)
+        manual_range_layout.addStretch(1)
         
-        range_layout.addWidget(QtWidgets.QLabel(text='-', parent=stat_frame), 1, 2)
-
-        stat_frame.setLayout(stat_layout)
-        self.main_layout.addWidget(stat_frame)
+        stat_layout.addLayout(manual_range_layout)
+        
         save_button = QtWidgets.QPushButton(text='Save image', parent=self)
         save_button.clicked.connect(self.save_image)
-        self.main_layout.addWidget(save_button)
+        save_row_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(save_row_layout)
+        save_row_layout.addWidget(save_button)
+        save_row_layout.addStretch(1)
         
     def save_image(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save image...', '', 'PNG (*.png);; JPEG (*.jpg);; npz files (*.npz)',
@@ -219,23 +231,33 @@ class SettingsWindow(QtWidgets.QMainWindow):
 
     def build_proc_frame(self):
         # frame that contains image post-processing controls (threshold, median filter)
+        proc_row_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(proc_row_layout)
         proc_frame = QtWidgets.QGroupBox(title='Image processing controls', parent=self)
-        self.main_layout.addWidget(proc_frame)
-        proc_layout = QtWidgets.QGridLayout()
+        proc_row_layout.addWidget(proc_frame)
+        proc_row_layout.addStretch(1)
+
+        proc_layout = QtWidgets.QVBoxLayout()
         proc_frame.setLayout(proc_layout)
         self.median_check = QtWidgets.QCheckBox(text='Use median filter?', parent=proc_frame)
         self.median_check.clicked.connect(self.median_check_click)
-        proc_layout.addWidget(self.median_check, 0, 0)
-        self.thresh_check = QtWidgets.QCheckBox(text='Use threshold?', parent=proc_frame)
-        proc_layout.addWidget(self.thresh_check, 1, 0)
-        self.thresh_check.clicked.connect(self.thresh_check_click)
-        proc_layout.addWidget(QtWidgets.QLabel(text='Threshold value (%): ', parent=proc_frame), 1, 1)      
+        median_row_layout = QtWidgets.QHBoxLayout()
+        proc_layout.addLayout(median_row_layout)
+        median_row_layout.addWidget(self.median_check)
+        median_row_layout.addStretch(1)
         
+        thresh_row_layout = QtWidgets.QHBoxLayout()
+        proc_layout.addLayout(thresh_row_layout)
+        self.thresh_check = QtWidgets.QCheckBox(text='Use threshold?', parent=proc_frame)
+        thresh_row_layout.addWidget(self.thresh_check)
+        self.thresh_check.clicked.connect(self.thresh_check_click)      
+        thresh_row_layout.addWidget(QtWidgets.QLabel(text='Threshold value (%): ', parent=proc_frame))      
         self.thresh_entry = QtWidgets.QLineEdit(parent=proc_frame)
         self.thresh_entry.setValidator(QtGui.QDoubleValidator(bottom=0, top=100, parent=self))
         self.thresh_entry.setFixedWidth(self.base_entry_width)
         self.thresh_entry.returnPressed.connect(self.threshold_changed)
-        proc_layout.addWidget(self.thresh_entry, 1, 2)
+        thresh_row_layout.addWidget(self.thresh_entry)
+        thresh_row_layout.addStretch(1)
         
     def median_check_click(self, checked):
         self.active_frame.use_median_filter = checked
@@ -247,12 +269,13 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.active_frame.threshold = float(self.thresh_entry.text())
     
     def build_camera_frame(self):
-        bottom_layout = QtWidgets.QGridLayout()
-        self.main_layout.addLayout(bottom_layout)
         
          # frame that contains exposure time and gain controls
+        acq_row_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(acq_row_layout)
         acq_frame = QtWidgets.QGroupBox(title='Acquisition controls', parent=self)
-        bottom_layout.addWidget(acq_frame, 0, 0)
+        acq_row_layout.addWidget(acq_frame)
+        acq_row_layout.addStretch(1)
         acq_layout = QtWidgets.QGridLayout()
         acq_frame.setLayout(acq_layout)
 
@@ -276,8 +299,11 @@ class SettingsWindow(QtWidgets.QMainWindow):
         acq_layout.setColumnStretch(2, 100)
         
         # frame that contains AOI controls
+        size_row_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(size_row_layout)
         size_frame = QtWidgets.QGroupBox(title='AOI controls', parent=self)
-        bottom_layout.addWidget(size_frame, 1, 0)
+        size_row_layout.addWidget(size_frame)
+        size_row_layout.addStretch(1)
         size_layout = QtWidgets.QGridLayout()
         size_frame.setLayout(size_layout)
         
@@ -319,19 +345,20 @@ class SettingsWindow(QtWidgets.QMainWindow):
         
         self.not_running_widgets.append(size_frame)
         
-        calibration_layout = QtWidgets.QGridLayout()
-        bottom_layout.addLayout(calibration_layout, 2, 0, 1, 2)
+        calibration_layout = QtWidgets.QHBoxLayout()
+        self.main_layout.addLayout(calibration_layout)
         
         self.calibration_check = QtWidgets.QCheckBox(text='Use pixel calibration? (um/px)', parent=self)
         self.calibration_check.clicked.connect(self.calibration_changed)
-        calibration_layout.addWidget(self.calibration_check, 0, 0)
+        calibration_layout.addWidget(self.calibration_check)
         
         calibration_validator = QtGui.QDoubleValidator(bottom=1e-12, parent=self)
         self.calibration_entry = QtWidgets.QLineEdit(parent=self)
         self.calibration_entry.setValidator(calibration_validator)
         self.calibration_entry.setFixedWidth(self.base_entry_width)
         self.calibration_entry.returnPressed.connect(self.calibration_changed)
-        calibration_layout.addWidget(self.calibration_entry, 0, 1)
+        calibration_layout.addWidget(self.calibration_entry)
+        calibration_layout.addStretch(1)
         
     def focus_changed(self, old, new):
         if old == self.calibration_entry:
