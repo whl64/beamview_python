@@ -431,9 +431,9 @@ class SettingsWindow(QtWidgets.QMainWindow):
     def gain_changed(self, *args):
         self.cam.gain = int(self.gain_entry.text())
 
-        self.gain_entry.setText(self.cam.gain)
+        self.gain_entry.setText(str(self.cam.gain))
     
     def exposure_changed(self, *args):
         self.cam.exposure = int(self.exposure_entry.text())
 
-        self.exposure_entry.setText(self.cam.exposure)
+        self.exposure_entry.setText(str(self.cam.exposure))
