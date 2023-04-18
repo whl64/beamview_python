@@ -135,7 +135,7 @@ class CameraFrame(QtWidgets.QWidget):
 
     @cmap.setter
     def cmap(self, value):
-        self.img.setColorMap(pg.colormap.getFromMatplotlib(value))
+        self.cbar.setColorMap(pg.colormap.getFromMatplotlib(value))
         self._cmap = value
         
     def change_calibration(self, use_calibration, calibration):
