@@ -1,10 +1,8 @@
-import matplotlib as mpl
-
-mpl.use('TkAgg')
 import argparse
 import os
-import tkinter as tk
-from tkinter import messagebox, ttk
+
+from PyQt5 import QtWidgets, QtGui
+import pyqtgraph as pg
 
 import pypylon.pylon as pylon
 from pypylon import _genicam as gen
@@ -16,44 +14,63 @@ import faulthandler
 
 packet_size = 8192
 
-class Beamview(tk.Tk):
-    def __init__(self):
+class Beamview(QtWidgets.QMainWindow):
+    def __init__(self, app):
         super().__init__()
-        self.title('Camera list')
-                
+        # layout = QtWidgets.QGridLayout()
+        # self.setLayout(layout)
+        self.setMinimumSize(200, 200)
+        self.setWindowTitle('Camera list')
+        self.app = app
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
         for i, device in enumerate(self.devices):
             if device.GetUserDefinedName() == '':
                 device.SetUserDefinedName(f'Camera {i}')
 
-        self.cam_window = CameraWindow(self)
-        self.settings_window = SettingsWindow(self)
-        
-        self.camera_list = ttk.Treeview(self, columns=('name', 'model'), show='headings', selectmode='browse')
-        self.camera_list.heading('name', text='Name')
-        self.camera_list.heading('model', text='Model')
-#        self.camera_list.heading('address', text='IP Address')
+        self.cam_window = CameraWindow(self, app)
+        self.settings_window = SettingsWindow(self, app)
+            
+        self.camera_list = QtWidgets.QTreeView(self)
+        self.camera_list_model = QtGui.QStandardItemModel()
+        self.camera_list_model.setHorizontalHeaderLabels(('Name', 'Model'))
+        self.camera_list.setModel(self.camera_list_model)
+        self.camera_list.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.camera_list.setUniformRowHeights(True)
         
         for device in self.devices:
-            self.camera_list.insert('', tk.END, values=(device.GetUserDefinedName(), device.GetModelName()))
-        
-        self.camera_list.grid(row=0, column=0)
-        self.camera_list.bind('<Double-Button-1>', self.add_camera)
-        scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.camera_list.yview)
-        self.camera_list.configure(yscroll=scrollbar.set)
-        scrollbar.grid(row=0, column=1, sticky='ns')
+            name = QtGui.QStandardItem(device.GetUserDefinedName())
+            model = QtGui.QStandardItem(device.GetModelName())
+            name.setEditable(False)
+            model.setEditable(False)
+            self.camera_list_model.appendRow((name, model))
+            
+        self.camera_list.doubleClicked.connect(self.add_camera)
+        # layout.addChildWidget(self.camera_list)
+        # self.camera_list.bind('<Double-Button-1>', self.add_camera)
+        # scrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.camera_list.yview)
         self.opened_cameras = {}
         self.running_cameras = {}
+        
+        self.setCentralWidget(self.camera_list)
+        self.settings_window.show()
+        self.cam_window.show()
+
+
             
     def add_camera(self, *args):
-        index = self.camera_list.index(self.camera_list.selection()[0])
+        index = self.camera_list.currentIndex().row()
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
                 cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size)
             except gen.RuntimeException:
-                messagebox.showerror('Error', 'Error: Camera in use by another application.')
+                error_box = QtWidgets.QMessageBox()
+                error_box.setIcon(QtWidgets.QMessageBox.Critical)
+                error_box.setWindowTitle('Error')
+                error_box.setText('Error: Camera in use by another application.')
+                error_box.show()
+                error_box.exec_()
                 return
             if cam.name == '':
                 cam.name = self.devices[index].GetUserDefinedName()
@@ -71,11 +88,17 @@ class Beamview(tk.Tk):
         accumulated_delay = 0
         delay_offset = 0
         for cam in self.opened_cameras.values():
-            cam.frame_transmission_delay = accumulated_delay + delay_offset
-            total_packet_size = packet_size + 14 + 4  # including Ethernet headers
-            accumulated_delay += total_packet_size
+            try:
+                cam.frame_transmission_delay = accumulated_delay + delay_offset
+                total_packet_size = packet_size + 14 + 4  # including Ethernet headers
+                accumulated_delay += total_packet_size
+            except gen.LogicalErrorException:
+                pass
         for cam in self.opened_cameras.values():
-            cam.interpacket_delay = accumulated_delay
+            try:
+                cam.interpacket_delay = accumulated_delay
+            except gen.LogicalErrorException:
+                pass
 
     def start_camera(self, cam):
         if cam.serial_number not in self.running_cameras:
@@ -87,17 +110,23 @@ class Beamview(tk.Tk):
             del self.running_cameras[cam.serial_number]
             self.set_delays()
             
+    def closeEvent(self, event):
+        self.app.quit()
+            
 def main():
     parser = argparse.ArgumentParser(description='Multicam Beamview.')
     parser.add_argument('--debug', help='create emulated cameras for debugging', action='store_true')
     args = parser.parse_args()
     if args.debug:
         faulthandler.enable()
-        number_of_emulated_cameras = 5
+        number_of_emulated_cameras = 20
         os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
-
-    beamview = Beamview()
-    beamview.mainloop()
+    app = QtWidgets.QApplication([])
+    pg.setConfigOption('imageAxisOrder', 'row-major')
+    beamview = Beamview(app)
+    beamview.show()
+    app.exec_()
+    
     
 if __name__ == '__main__':
     main()

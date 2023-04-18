@@ -82,8 +82,10 @@ class Basler_Camera(cw.Camera):
     
     @gain.setter
     def gain(self, value):
-        self.cam.GainRaw.SetValue(value)
-    
+        try: 
+            self.cam.GainRaw.SetValue(value)    
+        except _genicam.OutOfRangeException:
+            pass
     @property
     def exposure(self):
         """Exposure time in ms
@@ -95,8 +97,10 @@ class Basler_Camera(cw.Camera):
     
     @exposure.setter
     def exposure(self, value):
-        self.cam.ExposureTimeRaw.SetValue(int(value*1e3))
-    
+        try:
+            self.cam.ExposureTimeRaw.SetValue(int(value*1e3))
+        except _genicam.OutOfRangeException:
+            pass
     @property
     def offset_x(self):
         return self.cam.OffsetX.GetValue()
@@ -144,7 +148,6 @@ class Basler_Camera(cw.Camera):
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     
     def return_frame(self):
-        print('frame return attempted')
         if self.trigger_mode == TriggerMode.FREERUN:
             with self.cam.RetrieveResult(5000) as res:
                 if res.GrabSucceeded():
