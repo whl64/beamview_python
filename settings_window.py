@@ -5,6 +5,8 @@ from PyQt5.QtCore import Qt
 
 import numpy as np
 
+from camera_frame import CameraFrame
+
 class SettingsWindow(QtWidgets.QMainWindow):
     def __init__(self, root, app):
         super().__init__()
@@ -258,6 +260,20 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.thresh_entry.returnPressed.connect(self.threshold_changed)
         thresh_row_layout.addWidget(self.thresh_entry)
         thresh_row_layout.addStretch(1)
+        
+        colormap_row_layout = QtWidgets.QHBoxLayout()
+        proc_layout.addLayout(colormap_row_layout)
+        self.colormap_box = pg.ComboBox(parent=proc_frame)
+        self.colormap_box.setEditable(False)
+        self.colormap_box.setItems(CameraFrame.colormaps)
+        colormap_row_layout.addWidget(QtWidgets.QLabel(text='Colormap: ', parent=proc_frame))      
+        colormap_row_layout.addWidget(self.colormap_box, 1)
+        colormap_row_layout.addStretch(1)
+        self.colormap_box.currentIndexChanged.connect(self.colormap_changed)
+        self.colormap_box.setValue(CameraFrame.default_cmap)
+                
+    def colormap_changed(self, i):
+        self.active_frame.cmap = self.colormap_box.value()
         
     def median_check_click(self, checked):
         self.active_frame.use_median_filter = checked

@@ -14,7 +14,17 @@ import scipy.ndimage as ndi
 from basler_camera_wrapper import Basler_Camera, TriggerMode
 from pypylon import pylon
 
-class CameraFrame(QtWidgets.QWidget):    
+class CameraFrame(QtWidgets.QWidget):
+    # format: "friendly name" displayed to users, "real name" used by getFromMatplotlib     
+    colormaps = {'freeze': 'cmr.freeze',
+                 'grayscale': 'cmr.neutral',
+                 'ember': 'cmr.ember',
+                 'jungle': 'cmr.jungle',
+                 'seaweed': 'cmr.seaweed',
+                 'viridis': 'viridis',
+                 'inferno': 'inferno'}
+    default_cmap = 'cmr.freeze'
+    
     def __init__(self, master, cam, app):
         super().__init__(master)
         self.master = master
@@ -74,7 +84,6 @@ class CameraFrame(QtWidgets.QWidget):
         self.x_offset = 0
         self.y_offset = 0
         
-        cmap = pg.colormap.getFromMatplotlib('viridis')
         self.fig = pg.GraphicsLayoutWidget()
         self.fig.ci.setContentsMargins(0, 0, 0, 0)
         self.plot = self.fig.addPlot()
@@ -82,7 +91,8 @@ class CameraFrame(QtWidgets.QWidget):
         self.plot.setTitle(' ')
         
         self.img = pg.ImageItem()
-        self.img.setColorMap(cmap)
+        self._cmap = CameraFrame.default_cmap
+        self.img.setColorMap(pg.colormap.getFromMatplotlib(self.cmap))
         self.plot.addItem(self.img)
         self.img.hoverEvent = self.imageHoverEvent
         
@@ -118,6 +128,15 @@ class CameraFrame(QtWidgets.QWidget):
         self.timer.timeout.connect(self.update_frames)
         self.timer.start(100)
         self.setMinimumHeight(400)
+        
+    @property
+    def cmap(self):
+        return self._cmap
+
+    @cmap.setter
+    def cmap(self, value):
+        self.img.setColorMap(pg.colormap.getFromMatplotlib(value))
+        self._cmap = value
         
     def change_calibration(self, use_calibration, calibration):
         self.use_calibration = use_calibration
