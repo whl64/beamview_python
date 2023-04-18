@@ -82,8 +82,10 @@ class Basler_Camera(cw.Camera):
     
     @gain.setter
     def gain(self, value):
-        self.cam.GainRaw.SetValue(value)
-    
+        try: 
+            self.cam.GainRaw.SetValue(value)    
+        except _genicam.OutOfRangeException:
+            pass
     @property
     def exposure(self):
         """Exposure time in ms
@@ -95,8 +97,10 @@ class Basler_Camera(cw.Camera):
     
     @exposure.setter
     def exposure(self, value):
-        self.cam.ExposureTimeRaw.SetValue(int(value*1e3))
-    
+        try:
+            self.cam.ExposureTimeRaw.SetValue(int(value*1e3))
+        except _genicam.OutOfRangeException:
+            pass
     @property
     def offset_x(self):
         return self.cam.OffsetX.GetValue()
