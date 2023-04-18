@@ -4,11 +4,11 @@ Beamview is a tool for viewing and analyzing camera images, built on [pyqtgraph]
 Inspired by the original MATLAB Beamview used in the MEDUSA UED lab at Cornell.
 
 # Features
-* Realtime centroid/sigma calculations
-* Postprocessing including median filtering and thresholding
+* Realtime centroid/sigma calculations.
+* Postprocessing including median filtering and thresholding.
 * Simultaneous viewing of multiple cameras.
-* Automatic bandwidth management
-* Variety of available colormaps 
+* Automatic bandwidth management.
+* Variety of available colormaps.
 
 # Prerequisites
 * [pyqtgraph](https://pyqtgraph.readthedocs.io/en/latest/) >= 0.13.1
