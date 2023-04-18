@@ -281,17 +281,17 @@ class SettingsWindow(QtWidgets.QMainWindow):
 
         acq_layout.addWidget(QtWidgets.QLabel(text='Exposure time (ms): ', parent=self), 0, 0, Qt.AlignmentFlag.AlignRight)
         
-        validator = QtGui.QIntValidator(bottom=0, parent=self)
+        dbl_validator = QtGui.QDoubleValidator(bottom=1e-3, parent=self)
         self.exposure_entry = QtWidgets.QLineEdit(parent=acq_frame)
-        self.exposure_entry.setValidator(validator)
+        self.exposure_entry.setValidator(dbl_validator)
         self.exposure_entry.setFixedWidth(self.base_entry_width)
         self.exposure_entry.returnPressed.connect(self.exposure_changed)
         acq_layout.addWidget(self.exposure_entry, 0, 1)
         
         acq_layout.addWidget(QtWidgets.QLabel(text='Gain: ', parent=self), 1, 0, Qt.AlignmentFlag.AlignRight)
-        
+        int_validator = QtGui.QIntValidator(bottom=0, parent=self)
         self.gain_entry = QtWidgets.QLineEdit(parent=acq_frame)
-        self.gain_entry.setValidator(validator)
+        self.gain_entry.setValidator(int_validator)
         self.gain_entry.setFixedWidth(self.base_entry_width)
         self.gain_entry.returnPressed.connect(self.gain_changed)
         acq_layout.addWidget(self.gain_entry, 1, 1)
@@ -434,6 +434,6 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.gain_entry.setText(str(self.cam.gain))
     
     def exposure_changed(self, *args):
-        self.cam.exposure = int(self.exposure_entry.text())
+        self.cam.exposure = float(self.exposure_entry.text())
 
         self.exposure_entry.setText(str(self.cam.exposure))
