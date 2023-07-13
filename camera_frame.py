@@ -188,7 +188,7 @@ class CameraFrame(QtWidgets.QWidget):
 
     def update_frames(self):
         if self.cam.is_grabbing():
-            if self.cam.trigger_mode == TriggerMode.FREERUN:
+            if self.cam.trigger_mode == TriggerMode.FREERUN or self.cam.trigger_mode == TriggerMode.HARDWARE:
                 self.plot_data = self.cam.return_frame()
                 self.draw_frame()
             else:

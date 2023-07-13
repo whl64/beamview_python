@@ -10,6 +10,7 @@ import camera_wrapper as cw
 class TriggerMode(Enum):
     FREERUN = auto()
     SOFTWARE = auto()
+    HARDWARE = auto()
 
 class Basler_Camera(cw.Camera):
     def __init__(self, serial_number, trigger_mode, packet_size=8192):
@@ -22,12 +23,15 @@ class Basler_Camera(cw.Camera):
         self.model = device.GetModelName()
 #        self.address = device.GetAddress()
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
+        self.cam.Open()
         
         if trigger_mode == TriggerMode.SOFTWARE:
             self.cam.RegisterConfiguration(pylon.SoftwareTriggerConfiguration(), pylon.RegistrationMode_ReplaceAll,
                                            pylon.Cleanup_Delete)
         elif trigger_mode == TriggerMode.FREERUN:
             pass
+        elif trigger_mode == TriggerMode.HARDWARE:
+            self.cam.TriggerMode = 'On'
         else:
             raise TypeError('trigger must be of type TriggerMode')
         
@@ -38,7 +42,6 @@ class Basler_Camera(cw.Camera):
         self.waiting_for_trigger = False
         self.lock.release()
             
-        self.cam.Open()
         
         if self.model != 'Emulation':
             self.cam.GevSCPSPacketSize.SetValue( packet_size )  #  9708 abs max new cam.
@@ -142,13 +145,13 @@ class Basler_Camera(cw.Camera):
         return self.cam.HeightMax.GetValue()
         
     def start_grabbing(self):
-        if self.trigger_mode == TriggerMode.FREERUN:
+        if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByUser)
         elif self.trigger_mode == TriggerMode.SOFTWARE:
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     
     def return_frame(self):
-        if self.trigger_mode == TriggerMode.FREERUN:
+        if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:
             with self.cam.RetrieveResult(5000) as res:
                 if res.GrabSucceeded():
                     return res.Array
@@ -156,14 +159,14 @@ class Basler_Camera(cw.Camera):
                     raise RuntimeError('Grab failed')
                 
     def request_frame(self):
-        self.lock.acquire()
-        if self.waiting_for_trigger:
-            print('already waiting for trigger')
-            self.lock.release()
-            return
-        self.waiting_for_trigger = True
-        self.lock.release()
         if self.trigger_mode == TriggerMode.SOFTWARE:
+            self.lock.acquire()
+            if self.waiting_for_trigger:
+                print('already waiting for trigger')
+                self.lock.release()
+                return
+            self.waiting_for_trigger = True
+            self.lock.release()
             try:
                 if self.cam.WaitForFrameTriggerReady(1, pylon.TimeoutHandling_ThrowException):
                     self.cam.ExecuteSoftwareTrigger()
@@ -171,7 +174,7 @@ class Basler_Camera(cw.Camera):
                     self.waiting_for_trigger = False
                     self.lock.release()
             except:
-#                print('trigger timed out')
+                #                print('trigger timed out')
                 self.lock.acquire()
                 self.waiting_for_trigger = False
                 self.lock.release()
