@@ -22,6 +22,9 @@ class Beamview(QtWidgets.QMainWindow):
         self.setMinimumSize(200, 200)
         self.setWindowTitle('Camera list')
         self.app = app
+        self.archive_mode = False
+        self.archive_time = 300
+        self.archive_dir = '/home/lo_li/nir_archive'
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
         for i, device in enumerate(self.devices):

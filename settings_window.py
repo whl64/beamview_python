@@ -11,6 +11,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
     def __init__(self, root, app):
         super().__init__()
         self.app = app
+        self.root = root
         self.setMinimumSize(200, 200)
         self.setWindowTitle('Camera settings')
         dummy = QtWidgets.QWidget()
@@ -58,7 +59,6 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.build_stat_frame()
         self.build_proc_frame()
         self.build_camera_frame()
-        self.root = root
         self.setCentralWidget(dummy)
         self.app.focusChanged.connect(self.focus_changed)
         
@@ -134,6 +134,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         
         self.min_range_entry.setText(str(self.active_frame.vmin))
         self.max_range_entry.setText(str(self.active_frame.vmax))
+
+        self.archive_check.setChecked(self.root.archive_mode)
         
     def populate_range_entries(self):
         min_level, max_level = self.active_frame.cbar.levels()
@@ -197,6 +199,16 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.main_layout.addLayout(save_row_layout)
         save_row_layout.addWidget(save_button)
         save_row_layout.addStretch(1)
+
+        archive_row_layout = QtWidgets.QHBoxLayout() 
+        self.archive_check = QtWidgets.QCheckBox(text='Archive mode?', parent=self)
+        self.archive_check.clicked.connect(self.archive_check_click)
+        self.archive_check.setChecked(self.root.archive_mode)
+        
+        archive_row_layout.addWidget(self.archive_check)
+        archive_row_layout.addStretch(1)
+        self.main_layout.addLayout(archive_row_layout)
+        
         
     def save_image(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save image...', '', 'PNG (*.png);; JPEG (*.jpg);; npz files (*.npz)',
@@ -277,6 +289,9 @@ class SettingsWindow(QtWidgets.QMainWindow):
         
     def median_check_click(self, checked):
         self.active_frame.use_median_filter = checked
+
+    def archive_check_click(self, checked):
+        self.root.archive_mode = True
         
     def thresh_check_click(self, checked):
         self.active_frame.use_threshold = checked
