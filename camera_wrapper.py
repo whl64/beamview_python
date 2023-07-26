@@ -92,6 +92,11 @@ class Camera(ABC):
     def max_height(self):
         pass
     
+    @property
+    @abstractmethod
+    def binning(self):
+        pass
+    
     @abstractmethod
     def start_grabbing(self):
         pass

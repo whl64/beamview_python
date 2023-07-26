@@ -39,31 +39,45 @@ class CameraFrame(QtWidgets.QWidget):
         info_layout = QtWidgets.QVBoxLayout()
         info_layout_0 = QtWidgets.QHBoxLayout()
         info_layout_1 = QtWidgets.QHBoxLayout()
+        info_layout_2 = QtWidgets.QHBoxLayout()
+        info_layout_3 = QtWidgets.QHBoxLayout()
         
         main_layout.addLayout(status_layout)
         status_layout.addLayout(info_layout)
         info_layout.addLayout(info_layout_0)
         info_layout.addLayout(info_layout_1)
+        info_layout.addLayout(info_layout_2)
+        info_layout.addLayout(info_layout_3)
                 
         info_layout_0.addWidget(QtWidgets.QLabel(text=self.cam.name, parent=self))
         
         self.status_label = QtWidgets.QLabel('Stopped.', parent=self)
         info_layout_0.addWidget(self.status_label)
+        info_layout_0.addWidget(QtWidgets.QLabel(f'Binning: {self.cam.binning}'))
+        info_layout_0.addStretch(1)
         
-        self.frame_time_label = QtWidgets.QLabel(text='0.00 s', parent=self)
-        info_layout_0.addWidget(self.frame_time_label)        
+        self.frame_time_label = QtWidgets.QLabel(text='Frame time: 0.000 s', parent=self)
+        info_layout_1.addWidget(self.frame_time_label)        
 
-        self.max_data_label = QtWidgets.QLabel(text='Max data: 0.0%', parent=self)
-        info_layout_0.addWidget(self.max_data_label)
+        self.max_data_label = QtWidgets.QLabel(text='Max data: 0.0%  ', parent=self)
+        info_layout_1.addWidget(self.max_data_label)
+        info_layout_1.addStretch(1)
         
         self.centroid_label = QtWidgets.QLabel(text='Centroids (px): (N/A, N/A)', parent=self)
-        info_layout_1.addWidget(self.centroid_label)
+        info_layout_2.addWidget(self.centroid_label)
+        info_layout_2.addStretch(1)
         
         self.sigma_label = QtWidgets.QLabel(text='Sigmas (px): (N/A, N/A)', parent=self)
-        info_layout_1.addWidget(self.sigma_label)
+        info_layout_3.addWidget(self.sigma_label)
+        info_layout_3.addStretch(1)
         
         close_button = QtWidgets.QPushButton(text='Close camera', parent=self)
-        status_layout.addWidget(close_button)
+        close_layout = QtWidgets.QVBoxLayout()
+        close_layout.addStretch(1)
+        close_layout.addWidget(close_button)
+        
+        status_layout.addStretch(1)
+        status_layout.addLayout(close_layout)
         
         close_button.clicked.connect(self.close)
                 
@@ -100,10 +114,12 @@ class CameraFrame(QtWidgets.QWidget):
         self.cbar.setImageItem(self.img)
         self.fig.addItem(self.cbar)
         
-        font = QtGui.QFont()
-        font.setPixelSize(16)
-        self.plot.getAxis('bottom').setTickFont(font)
-        self.plot.getAxis('left').setTickFont(font)
+        # font = QtGui.QFont()
+        # font.setPixelSize(16)
+        # self.plot.getAxis('bottom').setTickFont(font)
+        # self.plot.getAxis('left').setTickFont(font)
+        self.plot.showAxis('bottom', False)
+        self.plot.showAxis('left', False)
         self.tr = QtGui.QTransform()
         
         main_layout.addWidget(self.fig)
@@ -214,7 +230,8 @@ class CameraFrame(QtWidgets.QWidget):
                 plot_data = ndi.median_filter(plot_data, size=2)
                 
             max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
-            self.max_data_label.setText(f'Max data: {max_data_percent:.1f}%')
+            max_data_string = f'{max_data_percent:.1f}'
+            self.max_data_label.setText(f'Max data: {max_data_string: <6}%')
             if max_data_percent > 97:
                 self.max_data_label.setStyleSheet('background-color: red')
             else:
