@@ -12,7 +12,7 @@ class TriggerMode(Enum):
     SOFTWARE = auto()
 
 class Basler_Camera(cw.Camera):
-    def __init__(self, serial_number, trigger_mode, packet_size=8192):
+    def __init__(self, serial_number, trigger_mode, packet_size=8192, binning=1):
         super().__init__(serial_number)
         tlf = pylon.TlFactory.GetInstance()
         di = pylon.DeviceInfo()
@@ -55,6 +55,10 @@ class Basler_Camera(cw.Camera):
         except _genicam.InvalidArgumentException as E:
             self._pixel_format = 'Mono8'
             self.cam.PixelFormat.SetValue(self._pixel_format)
+        self.cam.BinningHorizontal = binning
+        self.cam.BinningVertical = binning
+        self.cam.BinningHorizontalMode = 'Average'
+        self.cam.BinningVerticalMode = 'Average'
     
     @property
     def frame_transmission_delay(self):

@@ -291,7 +291,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.active_frame.use_median_filter = checked
 
     def archive_check_click(self, checked):
-        self.root.archive_mode = True
+        self.root.archive_mode = checked
         
     def thresh_check_click(self, checked):
         self.active_frame.use_threshold = checked

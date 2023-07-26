@@ -69,7 +69,7 @@ class CameraWindow(QtWidgets.QMainWindow):
                         # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
                         exporter = exp.ImageExporter(self.camera_frames[sn].plot)
                         exporter.export(filename + '.png')
-                        time.sleep(1)
+                        time.sleep(0.2)
                     if cam.is_grabbing():
                         cam.request_frame()
             except:

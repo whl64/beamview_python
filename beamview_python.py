@@ -13,6 +13,7 @@ from settings_window import SettingsWindow
 import faulthandler
 
 packet_size = 8192
+binning = 4
 
 class Beamview(QtWidgets.QMainWindow):
     def __init__(self, app):
@@ -66,7 +67,7 @@ class Beamview(QtWidgets.QMainWindow):
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
-                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size)
+                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size, binning)
             except gen.RuntimeException:
                 error_box = QtWidgets.QMessageBox()
                 error_box.setIcon(QtWidgets.QMessageBox.Critical)
