@@ -13,7 +13,7 @@ class TriggerMode(Enum):
     HARDWARE = auto()
 
 class Basler_Camera(cw.Camera):
-    def __init__(self, serial_number, trigger_mode, packet_size=8192):
+    def __init__(self, serial_number, trigger_mode, packet_size=8192, binning=1):
         super().__init__(serial_number)
         tlf = pylon.TlFactory.GetInstance()
         di = pylon.DeviceInfo()
@@ -58,6 +58,14 @@ class Basler_Camera(cw.Camera):
         except _genicam.InvalidArgumentException as E:
             self._pixel_format = 'Mono8'
             self.cam.PixelFormat.SetValue(self._pixel_format)
+        try:
+            self.cam.BinningHorizontal = binning
+            self.cam.BinningVertical = binning
+            self.cam.BinningHorizontalMode = 'Average'
+            self.cam.BinningVerticalMode = 'Average'
+            self._binning = binning
+        except _genicam.LogicalErrorException:
+            self._binning = 1 # camera doesn't support binning, so we report a binning factor of 1
     
     @property
     def frame_transmission_delay(self):
@@ -143,6 +151,10 @@ class Basler_Camera(cw.Camera):
     @property
     def max_height(self):
         return self.cam.HeightMax.GetValue()
+    
+    @property
+    def binning(self):
+        return self._binning
         
     def start_grabbing(self):
         if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:

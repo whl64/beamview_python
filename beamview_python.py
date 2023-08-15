@@ -13,6 +13,7 @@ from settings_window import SettingsWindow
 import faulthandler
 
 packet_size = 8192
+binning = 4
 
 class Beamview(QtWidgets.QMainWindow):
     def __init__(self, app):
@@ -22,6 +23,10 @@ class Beamview(QtWidgets.QMainWindow):
         self.setMinimumSize(200, 200)
         self.setWindowTitle('Camera list')
         self.app = app
+        self.archive_mode = False
+        self.archive_time = 300
+        self.archive_dir = os.path.expanduser('~/nir_archive')
+        print(self.archive_dir)
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
         for i, device in enumerate(self.devices):
@@ -63,7 +68,7 @@ class Beamview(QtWidgets.QMainWindow):
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
-                cam  = Basler_Camera(serial_number, TriggerMode.HARDWARE, packet_size)
+                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size, binning)
             except gen.RuntimeException:
                 error_box = QtWidgets.QMessageBox()
                 error_box.setIcon(QtWidgets.QMessageBox.Critical)
