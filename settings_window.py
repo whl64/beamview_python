@@ -137,6 +137,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
 
         self.archive_check.setChecked(self.root.archive_mode)
         
+        self.root.select_camera(self.cam)
+        
     def populate_range_entries(self):
         min_level, max_level = self.active_frame.cbar.levels()
         self.min_range_entry.setText(str(int(min_level)))

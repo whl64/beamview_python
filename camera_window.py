@@ -46,8 +46,16 @@ class CameraWindow(QtWidgets.QMainWindow):
         frame = CameraFrame(self, cam, self.app)
         self.camera_frames[cam.serial_number] = frame
         self.assign_frame_to_grid(frame, len(self.camera_frames) - 1)
+        self.activate_frame(cam)
             
         return frame
+
+    def activate_frame(self, cam):
+        for serial, frame in self.camera_frames.items():
+            if serial == cam.serial_number:
+                frame.activate()
+            else:
+                frame.deactivate()
 
     def trigger_loop(self):
         while 1:

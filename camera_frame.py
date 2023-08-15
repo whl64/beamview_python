@@ -27,6 +27,7 @@ class CameraFrame(QtWidgets.QFrame):
     
     def __init__(self, master, cam, app):
         super().__init__(master)
+        self.setObjectName('frame')
         self.master = master
         self.app = app
         self.pixel_calibration = 1
@@ -282,11 +283,11 @@ class CameraFrame(QtWidgets.QFrame):
     
     def activate(self):
         self.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Plain)
-        self.frame.setStyleSheet('#base_frame {border: 1px solid rgb(255, 0, 0)}')
+        self.setStyleSheet('#frame {border: 1px solid red; }')
         
     def deactivate(self):
-        self.setFrameStyle(QtWidgets.QFrame.NoStyle)
-        self.frame.setStyleSheet('#base_frame {border: 1px solid rgb(255, 0, 0)}')
+        self.setFrameStyle(QtWidgets.QFrame.NoFrame)
+        self.setStyleSheet('')
 
     def imageHoverEvent(self, event):
         """Show the position, pixel, and value under the mouse cursor.

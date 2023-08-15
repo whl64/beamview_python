@@ -60,8 +60,12 @@ class Beamview(QtWidgets.QMainWindow):
         self.setCentralWidget(self.camera_list)
         self.settings_window.show()
         self.cam_window.show()
+        
+        self.selected_camera = None
 
-
+    def select_camera(self, cam):
+        self.selected_camera = cam
+        self.cam_window.activate_frame(cam)
             
     def add_camera(self, *args):
         index = self.camera_list.currentIndex().row()
@@ -82,6 +86,7 @@ class Beamview(QtWidgets.QMainWindow):
             self.opened_cameras[serial_number] = cam
             frame = self.cam_window.add_camera(cam)
             self.settings_window.add_camera(cam, frame)
+            self.select_camera(cam)
 
     def remove_camera(self, cam):
         self.settings_window.remove_camera(cam)
