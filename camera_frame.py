@@ -14,7 +14,7 @@ import scipy.ndimage as ndi
 from basler_camera_wrapper import Basler_Camera, TriggerMode
 from pypylon import pylon
 
-class CameraFrame(QtWidgets.QWidget):
+class CameraFrame(QtWidgets.QFrame):
     # format: "friendly name" displayed to users, "real name" used by getFromMatplotlib     
     colormaps = {'freeze': 'cmr.freeze',
                  'grayscale': 'cmr.neutral',
@@ -99,6 +99,7 @@ class CameraFrame(QtWidgets.QWidget):
         self.y_offset = 0
         
         self.fig = pg.GraphicsLayoutWidget()
+        self.fig.setCursor(QtCore.Qt.CrossCursor)
         self.fig.ci.setContentsMargins(0, 0, 0, 0)
         self.plot = self.fig.addPlot()
         self.plot.setAspectLocked(True)
@@ -278,7 +279,15 @@ class CameraFrame(QtWidgets.QWidget):
             self.app.processEvents()
         except RuntimeError as e:
             print(e)
-            
+    
+    def activate(self):
+        self.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Plain)
+        self.frame.setStyleSheet('#base_frame {border: 1px solid rgb(255, 0, 0)}')
+        
+    def deactivate(self):
+        self.setFrameStyle(QtWidgets.QFrame.NoStyle)
+        self.frame.setStyleSheet('#base_frame {border: 1px solid rgb(255, 0, 0)}')
+
     def imageHoverEvent(self, event):
         """Show the position, pixel, and value under the mouse cursor.
         """
@@ -295,9 +304,7 @@ class CameraFrame(QtWidgets.QWidget):
         self.plot.setTitle("pos: (%0.1f, %0.1f)<br>pixel: (%d, %d)  value: %.3g" % (x, y, i, j, val))
         
 
-# Monkey-patch the image to use our custom hover function. 
-# This is generally discouraged (you should subclass ImageItem instead),
-# but it works for a very simple use like this. 
+
 if __name__ == '__main__':
     pg.setConfigOption('imageAxisOrder', 'row-major')
     faulthandler.enable()
