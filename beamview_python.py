@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
 import pyqtgraph as pg
 
 import pypylon.pylon as pylon
@@ -37,7 +37,7 @@ class Beamview(QtWidgets.QMainWindow):
         self.settings_window = SettingsWindow(self, app)
             
         self.camera_list = QtWidgets.QTreeView(self)
-        self.camera_list_model = QtGui.QStandardItemModel()
+        self.camera_list_model = BoldItemModel()
         self.camera_list_model.setHorizontalHeaderLabels(('Name', 'Model'))
         self.camera_list.setModel(self.camera_list_model)
         self.camera_list.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
@@ -69,6 +69,7 @@ class Beamview(QtWidgets.QMainWindow):
             
     def add_camera(self, *args):
         index = self.camera_list.currentIndex().row()
+        self.camera_list_model.boldRow(index)
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
@@ -92,7 +93,14 @@ class Beamview(QtWidgets.QMainWindow):
         self.settings_window.remove_camera(cam)
         if cam.serial_number in self.opened_cameras:
             del self.opened_cameras[cam.serial_number]
+            self.camera_list_model.unboldRow(self.find_camera_index(cam))
+            
 
+    def find_camera_index(self, cam):
+        for i, bascam in enumerate(self.devices):
+            if cam.serial_number == bascam.GetSerialNumber():
+                return i
+        raise ValueError('Camera not found')
 
     def set_delays(self):
         accumulated_delay = 0
@@ -122,6 +130,36 @@ class Beamview(QtWidgets.QMainWindow):
             
     def closeEvent(self, event):
         self.app.quit()
+        
+class BoldItemModel(QtGui.QStandardItemModel):
+    def __init__(self):
+        self._bold_rows = []
+        super().__init__()
+    
+    def appendRow(self, args):
+        self._bold_rows.append(False)
+        super().appendRow(args)
+        
+    def emitRowChanged(self, row):
+        for col in (0, 1):
+            index = self.index(row, col)
+            self.dataChanged.emit(index, index)
+    
+    def boldRow(self, row):
+        self._bold_rows[row] = True
+        self.emitRowChanged(row)
+    
+    def unboldRow(self, row):
+        self._bold_rows[row] = False
+        self.emitRowChanged(row)
+    
+    def data(self, index, role):
+        if role == QtCore.Qt.FontRole:
+            if self._bold_rows[index.row()]:
+                boldFont = QtGui.QFont()
+                boldFont.setBold(True)
+                return boldFont
+        return super().data(index, role)
             
 def main():
     parser = argparse.ArgumentParser(description='Multicam Beamview.')

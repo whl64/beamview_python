@@ -42,6 +42,9 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.toolbar = self.addToolBar('Camera controls')
         self.toolbar.addAction(self.camera_list_action)
         self.toolbar.addAction(self.settings_action)
+        self.toolbar.toggleViewAction().setVisible(False)
+        self.toolbar.setMovable(False)
+        self.toolbar.setFloatable(False)
         
     def open_settings(self):
         self.root.settings_window.raise_()
