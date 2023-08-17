@@ -3,6 +3,8 @@ Beamview is a tool for viewing and analyzing camera images, built on [pyqtgraph]
 
 Inspired by the original MATLAB Beamview used in the MEDUSA UED lab at Cornell.
 
+Icons are from the the [2x upscaled Fugue icon set](https://github.com/chrisjbillington/fugue-2x-icons) by Chris Billington, originally created by [Yusuke Kamiyamane](https://p.yusukekamiyamane.com/). The Fugue icon set is licensed under a [creative-commons attribution license](http://creativecommons.org/licenses/by/3.0/), and may be used with [attribution](https://p.yusukekamiyamane.com/icon/attribution/) to the author. If you do not wish to provide attribution, you may [purchase a license](https://p.yusukekamiyamane.com/icon/license/).
+
 # Features
 * Realtime centroid/sigma calculations.
 * Postprocessing including median filtering and thresholding.
