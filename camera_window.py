@@ -1,5 +1,7 @@
 from multiprocessing import dummy
 from PyQt5 import QtWidgets
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QAction
 import threading
 import time
 import datetime
@@ -7,6 +9,7 @@ import numpy as np
 from camera_frame import CameraFrame
 import pyqtgraph.exporters as exp
 import os
+import qrc_icons
 
 class CameraWindow(QtWidgets.QMainWindow):    
     def __init__(self, root, app):
@@ -18,10 +21,35 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.grid = QtWidgets.QGridLayout()
         dummy_widget.setLayout(self.grid)
         self.setCentralWidget(dummy_widget)
+        self.create_actions()
+        self.connect_actions()
+        self.create_toolbar()
+        
         self.app = app
         self.last_archive_time = time.time()
         self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
         self.trigger_thread.start()
+        
+    def connect_actions(self):
+        self.camera_list_action.triggered.connect(self.open_camera_list)
+        self.settings_action.triggered.connect(self.open_settings)    
+
+    def create_actions(self):
+        self.camera_list_action = QAction(QIcon(':script--arrow.png'), '&Camera list', self)
+        self.settings_action = QAction(QIcon(':gear.png'), '&Settings...', self)
+        
+    def create_toolbar(self):
+        self.toolbar = self.addToolBar('Camera controls')
+        self.toolbar.addAction(self.camera_list_action)
+        self.toolbar.addAction(self.settings_action)
+        
+    def open_settings(self):
+        self.root.settings_window.raise_()
+        self.root.settings_window.activateWindow()
+        
+    def open_camera_list(self):
+        self.root.raise_()
+        self.root.activateWindow()
         
     def closeEvent(self, event):
         self.app.quit()
