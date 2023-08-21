@@ -110,7 +110,10 @@ class CameraFrame(QtWidgets.QFrame):
         self._cmap = CameraFrame.default_cmap
         self.img.setColorMap(pg.colormap.getFromMatplotlib(self.cmap))
         self.plot.addItem(self.img)
+        
+        # monkey patch in custom mouse events
         self.img.hoverEvent = self.imageHoverEvent
+        self.img.mouseClickEvent = self.imageClickEvent
         
         self.cbar = pg.ColorBarItem(values=(self.vmin, self.vmax))
         self.cbar.setImageItem(self.img)
@@ -147,6 +150,7 @@ class CameraFrame(QtWidgets.QFrame):
         self.timer.timeout.connect(self.update_frames)
         self.timer.start(100)
         self.setMinimumHeight(400)
+        self.crosshairs = []
         
     def toggle_axes(self):
         self.show_axes = not self.show_axes
@@ -310,7 +314,49 @@ class CameraFrame(QtWidgets.QFrame):
         x, y = ppos.x(), ppos.y()
         self.plot.setTitle("pos: (%0.1f, %0.1f)<br>pixel: (%d, %d)  value: %.3g" % (x, y, i, j, val))
         
+    def imageClickEvent(self, event):
+        print('image click event')
+        if self.master.adding_crosshair:
+            pos = event.pos()
+            i, j = pos.x(), pos.y()
+            i = int(np.clip(i, 0, self.plot_data.shape[0] - 1))
+            j = int(np.clip(j, 0, self.plot_data.shape[1] - 1))
+            ppos = self.img.mapToParent(pos)
+            x, y = ppos.x(), ppos.y()
+            crosshair = Crosshair((x, y), movable=False, frame=self)
+            self.crosshairs.append(crosshair)          
+            self.plot.addItem(crosshair)
+            
+    def remove_crosshair(self, crosshair):
+        self.crosshairs.remove(crosshair)
+        self.plot.removeItem(crosshair)
+        
+    def move_crosshairs(self, move):
+        for crosshair in self.crosshairs:
+            crosshair.movable = move
+            
+    def highlight_crosshairs(self, highlight):
+        for crosshair in self.crosshairs:
+            crosshair.highlight = highlight
 
+class Crosshair(pg.TargetItem):
+    def __init__(self, *args, **kwargs):
+        self.frame = kwargs.pop('frame')
+        self.highlight = False
+        super().__init__(*args, **kwargs)
+        
+    def mouseClickEvent(self, ev):
+        ev.accept()
+        if self.frame.master.deleting_crosshair:
+            self.frame.remove_crosshair(self)
+        else:
+            super().mouseClickEvent(ev)
+
+    def hoverEvent(self, ev):
+        if (self.movable or self.highlight) and (not ev.isExit()) and ev.acceptDrags(QtCore.Qt.MouseButton.LeftButton):
+            self.setMouseHover(True)
+        else:
+            self.setMouseHover(False)
 
 if __name__ == '__main__':
     pg.setConfigOption('imageAxisOrder', 'row-major')

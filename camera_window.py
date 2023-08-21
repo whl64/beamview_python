@@ -1,7 +1,7 @@
 from multiprocessing import dummy
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction
+from PyQt5.QtWidgets import QAction, QActionGroup
 import threading
 import time
 import datetime
@@ -21,6 +21,9 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.grid = QtWidgets.QGridLayout()
         dummy_widget.setLayout(self.grid)
         self.setCentralWidget(dummy_widget)
+        self.adding_crosshair = False
+        self.moving_crosshair = False
+        self.deleting_crosshair = False
         self.create_actions()
         self.connect_actions()
         self.create_toolbar()
@@ -33,15 +36,27 @@ class CameraWindow(QtWidgets.QMainWindow):
     def connect_actions(self):
         self.camera_list_action.triggered.connect(self.open_camera_list)
         self.settings_action.triggered.connect(self.open_settings)    
-        self.axis_action.triggered.connect(self.toggle_axes)
+        self.axis_action.toggled.connect(self.toggle_axes)
+        self.crosshair_add_action.toggled.connect(self.toggle_add_crosshair)
+        self.crosshair_move_action.toggled.connect(self.toggle_move_crosshair)
+        self.crosshair_delete_action.toggled.connect(self.toggle_delete_crosshair)
 
     def create_actions(self):
         self.camera_list_action = QAction(QIcon(':script--arrow.png'), '&Camera list...', self)
         self.settings_action = QAction(QIcon(':gear.png'), '&Settings...', self)
         self.axis_action = QAction(QIcon(':guide.png'), '&Toggle axis labels', self)
+        self.axis_action.setCheckable(True)
         self.crosshair_add_action = QAction(QIcon(':target--plus.png'), '&Add crosshair', self)
+        self.crosshair_add_action.setCheckable(True)
         self.crosshair_move_action = QAction(QIcon(':target--arrow.png'), '&Move crosshair', self)
+        self.crosshair_move_action.setCheckable(True)
         self.crosshair_delete_action = QAction(QIcon(':target--minus.png'), '&Delete crosshair', self)
+        self.crosshair_delete_action.setCheckable(True)
+        self.crosshair_group = QActionGroup(self)
+        self.crosshair_group.addAction(self.crosshair_add_action)
+        self.crosshair_group.addAction(self.crosshair_move_action)
+        self.crosshair_group.addAction(self.crosshair_delete_action)
+        self.crosshair_group.setExclusionPolicy(QActionGroup.ExclusionPolicy.ExclusiveOptional)
         
     def create_toolbar(self):
         self.toolbar = self.addToolBar('Camera controls')
@@ -54,6 +69,19 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.toolbar.toggleViewAction().setVisible(False)
         self.toolbar.setMovable(False)
         self.toolbar.setFloatable(False)
+        
+    def toggle_add_crosshair(self):
+        self.adding_crosshair = self.crosshair_add_action.isChecked()
+        
+    def toggle_move_crosshair(self):
+        self.moving_crosshair = self.crosshair_move_action.isChecked()
+        for frame in self.camera_frames.values():
+            frame.move_crosshairs(self.moving_crosshair)
+        
+    def toggle_delete_crosshair(self):
+        self.deleting_crosshair = self.crosshair_delete_action.isChecked()
+        for frame in self.camera_frames.values():
+            frame.highlight_crosshairs(self.deleting_crosshair)
         
     def toggle_axes(self):
         for frame in self.camera_frames.values():

@@ -25,7 +25,7 @@ class Beamview(QtWidgets.QMainWindow):
         self.app = app
         self.archive_mode = False
         self.archive_time = 300
-        self.archive_dir = os.path.expanduser('~/nir_archive')
+        self.archive_dir = os.path.expanduser(os.path.join('~', 'nir_archive'))
         print(self.archive_dir)
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
