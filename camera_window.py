@@ -34,16 +34,23 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.trigger_thread.start()
         
     def connect_actions(self):
+        self.start_all_action.triggered.connect(self.start_all_cameras)
+        self.stop_all_action.triggered.connect(self.stop_all_cameras)    
         self.camera_list_action.triggered.connect(self.open_camera_list)
         self.settings_action.triggered.connect(self.open_settings)    
+        self.archive_action.toggled.connect(self.toggle_archive)
         self.axis_action.toggled.connect(self.toggle_axes)
         self.crosshair_add_action.toggled.connect(self.toggle_add_crosshair)
         self.crosshair_move_action.toggled.connect(self.toggle_move_crosshair)
         self.crosshair_delete_action.toggled.connect(self.toggle_delete_crosshair)
 
     def create_actions(self):
+        self.start_all_action = QAction(QIcon(':control.png'), '&Start all cameras', self)
+        self.stop_all_action = QAction(QIcon(':control-stop-square.png'), '&Stop all cameras', self)
         self.camera_list_action = QAction(QIcon(':script--arrow.png'), '&Camera list...', self)
         self.settings_action = QAction(QIcon(':gear.png'), '&Settings...', self)
+        self.archive_action = QAction(QIcon(':books-brown.png'), '&Toggle archive mode', self)
+        self.archive_action.setCheckable(True)    
         self.axis_action = QAction(QIcon(':guide.png'), '&Toggle axis labels', self)
         self.axis_action.setCheckable(True)
         self.crosshair_add_action = QAction(QIcon(':target--plus.png'), '&Add crosshair', self)
@@ -60,15 +67,35 @@ class CameraWindow(QtWidgets.QMainWindow):
         
     def create_toolbar(self):
         self.toolbar = self.addToolBar('Camera controls')
+        self.toolbar.addAction(self.start_all_action)
+        self.toolbar.addAction(self.stop_all_action)
+        self.toolbar.addSeparator()
         self.toolbar.addAction(self.camera_list_action)
         self.toolbar.addAction(self.settings_action)
+        self.toolbar.addAction(self.archive_action)
+        self.toolbar.addSeparator()
         self.toolbar.addAction(self.axis_action)
+        self.toolbar.addSeparator()
         self.toolbar.addAction(self.crosshair_add_action)
         self.toolbar.addAction(self.crosshair_move_action)
         self.toolbar.addAction(self.crosshair_delete_action)
         self.toolbar.toggleViewAction().setVisible(False)
         self.toolbar.setMovable(False)
         self.toolbar.setFloatable(False)
+        
+    def start_all_cameras(self):
+        for frame in self.camera_frames.values():
+            frame.start_camera()
+        self.root.settings_window.refresh()
+        
+    def stop_all_cameras(self):
+        for frame in self.camera_frames.values():
+            frame.stop_camera()
+        self.root.settings_window.refresh()
+        
+    def toggle_archive(self):
+        self.root.archive_mode = self.archive_action.isChecked()
+        self.root.settings_window.refresh()
         
     def toggle_add_crosshair(self):
         self.adding_crosshair = self.crosshair_add_action.isChecked()
@@ -123,6 +150,7 @@ class CameraWindow(QtWidgets.QMainWindow):
         return frame
 
     def activate_frame(self, cam):
+        return  # highlighting active frame doesn't seem necessary at the moment
         for serial, frame in self.camera_frames.items():
             if serial == cam.serial_number:
                 frame.activate()

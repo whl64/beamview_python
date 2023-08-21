@@ -62,6 +62,10 @@ class Beamview(QtWidgets.QMainWindow):
         self.cam_window.show()
         
         self.selected_camera = None
+        
+    def set_archive_mode(self, archive):
+        self.archive_mode = archive
+        self.cam_window.archive_action.setChecked(archive)
 
     def select_camera(self, cam):
         self.selected_camera = cam

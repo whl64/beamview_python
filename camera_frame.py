@@ -23,7 +23,7 @@ class CameraFrame(QtWidgets.QFrame):
                  'seaweed': 'cmr.seaweed',
                  'viridis': 'viridis',
                  'inferno': 'inferno'}
-    default_cmap = 'cmr.freeze'
+    default_cmap = 'cmr.ember'
     
     def __init__(self, master, cam, app):
         super().__init__(master)
@@ -194,19 +194,21 @@ class CameraFrame(QtWidgets.QFrame):
         self.cam.release_camera()
     
     def start_camera(self):
-        self.cam.start_grabbing()
-        self.cam.register_event_handler(ImageGrabber(self))
-        self.status_label.setText('Running...')
-        try:
-            self.cam.request_frame()
-        except:
-            print('trigger timed out')
-        self.master.root.start_camera(self.cam)
+        if not self.cam.is_grabbing():
+            self.cam.start_grabbing()
+            self.cam.register_event_handler(ImageGrabber(self))
+            self.status_label.setText('Running...')
+            try:
+                self.cam.request_frame()
+            except:
+                print('trigger timed out')
+            self.master.root.start_camera(self.cam)
         
     def stop_camera(self):
-        self.cam.stop_grabbing()
-        self.status_label.setText('Stopped.')
-        self.master.root.stop_camera(self.cam)
+        if self.cam.is_grabbing():
+            self.cam.stop_grabbing()
+            self.status_label.setText('Stopped.')
+            self.master.root.stop_camera(self.cam)
         
     def auto_range(self):
         self.cbar.setLevels((np.min(self.plot_data), np.max(self.plot_data)))
@@ -315,15 +317,14 @@ class CameraFrame(QtWidgets.QFrame):
         self.plot.setTitle("pos: (%0.1f, %0.1f)<br>pixel: (%d, %d)  value: %.3g" % (x, y, i, j, val))
         
     def imageClickEvent(self, event):
-        print('image click event')
-        if self.master.adding_crosshair:
+        if self.master.adding_crosshair and event.button() == QtCore.Qt.MouseButton.LeftButton:
             pos = event.pos()
             i, j = pos.x(), pos.y()
             i = int(np.clip(i, 0, self.plot_data.shape[0] - 1))
             j = int(np.clip(j, 0, self.plot_data.shape[1] - 1))
             ppos = self.img.mapToParent(pos)
             x, y = ppos.x(), ppos.y()
-            crosshair = Crosshair((x, y), movable=False, frame=self)
+            crosshair = Crosshair((x, y), movable=False, frame=self, pen='white')
             self.crosshairs.append(crosshair)          
             self.plot.addItem(crosshair)
             
@@ -347,7 +348,7 @@ class Crosshair(pg.TargetItem):
         
     def mouseClickEvent(self, ev):
         ev.accept()
-        if self.frame.master.deleting_crosshair:
+        if self.frame.master.deleting_crosshair and ev.button() == QtCore.Qt.MouseButton.LeftButton:
             self.frame.remove_crosshair(self)
         else:
             super().mouseClickEvent(ev)

@@ -8,5 +8,7 @@
     <file alias="target--minus.png">icons/target--minus.png</file>
     <file alias="target--plus.png">icons/target--plus.png</file>
     <file alias="books-brown.png">icons/books-brown.png</file>
+    <file alias="control.png">icons/control.png</file>
+    <file alias="control-stop-square.png">icons/control-stop-square.png</file>
 </qresource>
 </RCC>

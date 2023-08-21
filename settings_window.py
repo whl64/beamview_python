@@ -99,6 +99,9 @@ class SettingsWindow(QtWidgets.QMainWindow):
             return
         self.cam = self.active_cameras[i]
         self.active_frame = self.camera_frames[i]
+        self.refresh()
+        
+    def refresh(self):
         if self.cam.is_grabbing():
             for w in self.not_running_widgets:
                 w.setEnabled(False)
@@ -295,7 +298,7 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.active_frame.use_median_filter = checked
 
     def archive_check_click(self, checked):
-        self.root.archive_mode = checked
+        self.root.set_archive_mode(checked)
         
     def thresh_check_click(self, checked):
         self.active_frame.use_threshold = checked
