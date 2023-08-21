@@ -23,14 +23,16 @@ class Basler_Camera(cw.Camera):
         self.model = device.GetModelName()
 #        self.address = device.GetAddress()
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
-        self.cam.Open()
         
         if trigger_mode == TriggerMode.SOFTWARE:
             self.cam.RegisterConfiguration(pylon.SoftwareTriggerConfiguration(), pylon.RegistrationMode_ReplaceAll,
                                            pylon.Cleanup_Delete)
+            self.cam.Open()
+
         elif trigger_mode == TriggerMode.FREERUN:
-            pass
+            self.cam.Open()
         elif trigger_mode == TriggerMode.HARDWARE:
+            self.cam.Open()
             self.cam.TriggerMode = 'On'
         else:
             raise TypeError('trigger must be of type TriggerMode')
