@@ -134,6 +134,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         
         self.min_range_entry.setText(str(self.active_frame.vmin))
         self.max_range_entry.setText(str(self.active_frame.vmax))
+        
+        self.colormap_box.setValue(self.active_frame.cmap)
 
         self.archive_check.setChecked(self.root.archive_mode)
         

@@ -6,5 +6,7 @@
     <file alias="target--arrow.png">icons/target--arrow.png</file>
     <file alias="target.png">icons/target.png</file>
     <file alias="target--minus.png">icons/target--minus.png</file>
+    <file alias="target--plus.png">icons/target--plus.png</file>
+    <file alias="books-brown.png">icons/books-brown.png</file>
 </qresource>
 </RCC>

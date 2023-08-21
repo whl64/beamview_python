@@ -120,8 +120,9 @@ class CameraFrame(QtWidgets.QFrame):
         # font.setPixelSize(16)
         # self.plot.getAxis('bottom').setTickFont(font)
         # self.plot.getAxis('left').setTickFont(font)
-        self.plot.showAxis('bottom', False)
-        self.plot.showAxis('left', False)
+        self.show_axes = False
+        self.plot.showAxis('bottom', self.show_axes)
+        self.plot.showAxis('left', self.show_axes)
         self.tr = QtGui.QTransform()
         
         main_layout.addWidget(self.fig)
@@ -146,6 +147,11 @@ class CameraFrame(QtWidgets.QFrame):
         self.timer.timeout.connect(self.update_frames)
         self.timer.start(100)
         self.setMinimumHeight(400)
+        
+    def toggle_axes(self):
+        self.show_axes = not self.show_axes
+        self.plot.showAxis('bottom', self.show_axes)
+        self.plot.showAxis('left', self.show_axes)
         
     @property
     def cmap(self):

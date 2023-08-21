@@ -33,18 +33,31 @@ class CameraWindow(QtWidgets.QMainWindow):
     def connect_actions(self):
         self.camera_list_action.triggered.connect(self.open_camera_list)
         self.settings_action.triggered.connect(self.open_settings)    
+        self.axis_action.triggered.connect(self.toggle_axes)
 
     def create_actions(self):
-        self.camera_list_action = QAction(QIcon(':script--arrow.png'), '&Camera list', self)
+        self.camera_list_action = QAction(QIcon(':script--arrow.png'), '&Camera list...', self)
         self.settings_action = QAction(QIcon(':gear.png'), '&Settings...', self)
+        self.axis_action = QAction(QIcon(':guide.png'), '&Toggle axis labels', self)
+        self.crosshair_add_action = QAction(QIcon(':target--plus.png'), '&Add crosshair', self)
+        self.crosshair_move_action = QAction(QIcon(':target--arrow.png'), '&Move crosshair', self)
+        self.crosshair_delete_action = QAction(QIcon(':target--minus.png'), '&Delete crosshair', self)
         
     def create_toolbar(self):
         self.toolbar = self.addToolBar('Camera controls')
         self.toolbar.addAction(self.camera_list_action)
         self.toolbar.addAction(self.settings_action)
+        self.toolbar.addAction(self.axis_action)
+        self.toolbar.addAction(self.crosshair_add_action)
+        self.toolbar.addAction(self.crosshair_move_action)
+        self.toolbar.addAction(self.crosshair_delete_action)
         self.toolbar.toggleViewAction().setVisible(False)
         self.toolbar.setMovable(False)
         self.toolbar.setFloatable(False)
+        
+    def toggle_axes(self):
+        for frame in self.camera_frames.values():
+            frame.toggle_axes()
         
     def open_settings(self):
         self.root.settings_window.raise_()
