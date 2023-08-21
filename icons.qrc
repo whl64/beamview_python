@@ -2,5 +2,9 @@
 <qresource>
     <file alias="gear.png">icons/gear.png</file>
     <file alias="script--arrow.png">icons/script--arrow.png</file>
+    <file alias="guide.png">icons/guide.png</file>
+    <file alias="target--arrow.png">icons/target--arrow.png</file>
+    <file alias="target.png">icons/target.png</file>
+    <file alias="target--minus.png">icons/target--minus.png</file>
 </qresource>
 </RCC>
