@@ -16,9 +16,9 @@ from pypylon import pylon
 
 class CameraFrame(QtWidgets.QFrame):
     # format: "friendly name" displayed to users, "real name" used by getFromMatplotlib     
-    colormaps = {'freeze': 'cmr.freeze',
+    colormaps = {'ember': 'cmr.ember',
+                 'freeze': 'cmr.freeze',
                  'grayscale': 'cmr.neutral',
-                 'ember': 'cmr.ember',
                  'jungle': 'cmr.jungle',
                  'seaweed': 'cmr.seaweed',
                  'viridis': 'viridis',

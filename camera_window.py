@@ -59,11 +59,6 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.crosshair_move_action.setCheckable(True)
         self.crosshair_delete_action = QAction(QIcon(':target--minus.png'), '&Delete crosshair', self)
         self.crosshair_delete_action.setCheckable(True)
-        self.crosshair_group = QActionGroup(self)
-        self.crosshair_group.addAction(self.crosshair_add_action)
-        self.crosshair_group.addAction(self.crosshair_move_action)
-        self.crosshair_group.addAction(self.crosshair_delete_action)
-        self.crosshair_group.setExclusionPolicy(QActionGroup.ExclusionPolicy.ExclusiveOptional)
         
     def create_toolbar(self):
         self.toolbar = self.addToolBar('Camera controls')
@@ -72,8 +67,8 @@ class CameraWindow(QtWidgets.QMainWindow):
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.camera_list_action)
         self.toolbar.addAction(self.settings_action)
-        self.toolbar.addAction(self.archive_action)
         self.toolbar.addSeparator()
+        self.toolbar.addAction(self.archive_action)
         self.toolbar.addAction(self.axis_action)
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.crosshair_add_action)
@@ -96,19 +91,28 @@ class CameraWindow(QtWidgets.QMainWindow):
     def toggle_archive(self):
         self.root.archive_mode = self.archive_action.isChecked()
         self.root.settings_window.refresh()
-        
+            
     def toggle_add_crosshair(self):
         self.adding_crosshair = self.crosshair_add_action.isChecked()
+        if self.adding_crosshair:
+            self.crosshair_move_action.setChecked(False)
+            self.crosshair_delete_action.setChecked(False)
         
     def toggle_move_crosshair(self):
         self.moving_crosshair = self.crosshair_move_action.isChecked()
         for frame in self.camera_frames.values():
             frame.move_crosshairs(self.moving_crosshair)
+        if self.moving_crosshair:
+            self.crosshair_add_action.setChecked(False)
+            self.crosshair_delete_action.setChecked(False)
         
     def toggle_delete_crosshair(self):
         self.deleting_crosshair = self.crosshair_delete_action.isChecked()
         for frame in self.camera_frames.values():
             frame.highlight_crosshairs(self.deleting_crosshair)
+        if self.deleting_crosshair:
+            self.crosshair_add_action.setChecked(False)
+            self.crosshair_move_action.setChecked(False)
         
     def toggle_axes(self):
         for frame in self.camera_frames.values():
