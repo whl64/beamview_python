@@ -151,6 +151,7 @@ class CameraFrame(QtWidgets.QFrame):
         self.timer.start(100)
         self.setMinimumHeight(400)
         self.crosshairs = []
+        self.image_grabber = ImageGrabber(self)
         
     def toggle_axes(self):
         self.show_axes = not self.show_axes
@@ -196,10 +197,7 @@ class CameraFrame(QtWidgets.QFrame):
     def start_camera(self):
         if not self.cam.is_grabbing():
             self.cam.start_grabbing()
-            if not self.image_grabber:
-                self.image_grabber = ImageGrabber(self)
             self.cam.register_event_handler(self.image_grabber)
-            
             self.status_label.setText('Running...')
             try:
                 self.cam.request_frame()
