@@ -77,7 +77,7 @@ class Beamview(QtWidgets.QMainWindow):
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
-                cam  = Basler_Camera(serial_number, TriggerMode.SOFTWARE, packet_size, binning)
+                cam  = Basler_Camera(serial_number, TriggerMode.HARDWARE, packet_size, binning)
             except gen.RuntimeException:
                 error_box = QtWidgets.QMessageBox()
                 error_box.setIcon(QtWidgets.QMessageBox.Critical)

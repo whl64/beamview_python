@@ -99,7 +99,7 @@ class Camera(ABC):
     
     @property
     @abstractmethod
-    def triggering(self):
+    def trigger_mode(self):
         pass
     
     @abstractmethod

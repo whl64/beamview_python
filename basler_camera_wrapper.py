@@ -23,7 +23,7 @@ class Basler_Camera(cw.Camera):
         self.model = device.GetModelName()
 #        self.address = device.GetAddress()
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
-        
+                
         if trigger_mode == TriggerMode.SOFTWARE:
             self.cam.RegisterConfiguration(pylon.SoftwareTriggerConfiguration(), pylon.RegistrationMode_ReplaceAll,
                                            pylon.Cleanup_Delete)
@@ -37,8 +37,7 @@ class Basler_Camera(cw.Camera):
         else:
             raise TypeError('trigger must be of type TriggerMode')
         
-        self.trigger_mode = trigger_mode
-
+        self._trigger_mode = trigger_mode
         self.lock = threading.Lock()
         self.lock.acquire()
         self.waiting_for_trigger = False
@@ -159,19 +158,26 @@ class Basler_Camera(cw.Camera):
         return self._binning
     
     @property
-    def triggering(self):
-        return self.cam.TriggerMode
+    def trigger_mode(self):
+        return self._trigger_mode
     
-    @triggering.setter
-    def triggering(self, value):
-        if value:
+    @trigger_mode.setter
+    def trigger_mode(self, value):
+        self._trigger_mode = value
+        if self._trigger_mode == TriggerMode.HARDWARE:
             self.cam.TriggerMode = 'On'
-        else:
+            self.cam.TriggerSource = 'Line1'
+        elif self.trigger_mode == TriggerMode.SOFTWARE:
+            self.cam.TriggerMode = 'On'
+            self.cam.TriggerSource = 'Software'
+        elif self.trigger_mode == TriggerMode.FREERUN:
             self.cam.TriggerMode = 'Off'
+        else:
+            raise TypeError('Input must be of type TriggerMode')
         
     def start_grabbing(self):
         if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:
-            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByUser)
+            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
         elif self.trigger_mode == TriggerMode.SOFTWARE:
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     

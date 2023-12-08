@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt
 import numpy as np
 
 from camera_frame import CameraFrame
+from basler_camera_wrapper import TriggerMode
 
 class SettingsWindow(QtWidgets.QMainWindow):
     def __init__(self, root, app):
@@ -295,7 +296,10 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.active_frame.use_median_filter = checked
 
     def trigger_check_click(self, checked):
-        self.cam.triggering = checked
+        if checked:
+            self.cam.trigger_mode = TriggerMode.HARDWARE
+        else:
+            self.cam.trigger_mode = TriggerMode.SOFTWARE
 
     def archive_check_click(self, checked):
         self.root.set_archive_mode(checked)
@@ -334,14 +338,14 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.gain_entry.returnPressed.connect(self.gain_changed)
         acq_layout.addWidget(self.gain_entry, 1, 1)
         
-        self.trigger_check = QtWidgets.QCheckBox(parent=self)
-        trigger_label = QtWidgets.QLabel(text='Trigger on?', parent=self)
-        self.not_running_widgets.append(self.trigger_check)
-        self.not_running_widgets.append(trigger_label)
-        self.trigger_check.clicked.connect(self.trigger_check_click)
+        # self.trigger_check = QtWidgets.QCheckBox(parent=self)
+        # trigger_label = QtWidgets.QLabel(text='Trigger on?', parent=self)
+        # self.not_running_widgets.append(self.trigger_check)
+        # self.not_running_widgets.append(trigger_label)
+        # self.trigger_check.clicked.connect(self.trigger_check_click)
 
-        acq_layout.addWidget(trigger_label, 2, 0, Qt.AlignmentFlag.AlignRight)
-        acq_layout.addWidget(self.trigger_check, 2, 1)
+        # acq_layout.addWidget(trigger_label, 2, 0, Qt.AlignmentFlag.AlignRight)
+        # acq_layout.addWidget(self.trigger_check, 2, 1)
         acq_layout.setColumnStretch(2, 100)
         
         # frame that contains AOI controls
