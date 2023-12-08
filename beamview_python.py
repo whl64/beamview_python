@@ -187,9 +187,9 @@ class Beamview(QtWidgets.QMainWindow):
                 self.last_archive_time = time.time()
                 archive = True
                 timestamp = datetime.datetime.now()
-            try:
-                numbers = self.camera_frames.keys()
-                for sn in numbers:
+            numbers = self.camera_frames.keys()
+            for sn in numbers:
+                try:
                     frame = self.camera_frames[sn]
                     cam = frame.cam
                     if cam.is_grabbing():
@@ -205,10 +205,9 @@ class Beamview(QtWidgets.QMainWindow):
                             time.sleep(0.2)
                         cam.request_frame()
                         res = cam.return_frame()
-                        if res:
-                            frame.image_grabber.OnImageGrabbed(cam, res)
-            except:
-                pass
+                        frame.image_grabber.OnImageGrabbed(cam, res)
+                except:
+                    pass
             if self.archive_mode:
                 time.sleep(5)
             else:

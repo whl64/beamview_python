@@ -186,7 +186,7 @@ class Basler_Camera(cw.Camera):
         if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:
             with self.cam.RetrieveResult(5000) as res:
                 if res.GrabSucceeded():
-                    return res.Array
+                    return res
                 else:
                     raise RuntimeError('Grab failed')
                 
