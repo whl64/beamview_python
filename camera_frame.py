@@ -223,17 +223,14 @@ class CameraFrame(QtWidgets.QFrame):
 #                self.plot_data = self.cam.return_frame()
 #                self.draw_frame()
 #            else:
-            self.lock.acquire()
-            if self.frame_available:
-                self.frame_available = False
-                self.draw_frame()
-            else:
-                self.lock.release()
+            with self.lock:
+                if self.frame_available:
+                    self.frame_available = False
+                    self.draw_frame()
+
         
     def draw_frame(self):
-        plot_data = self.plot_data
-        if self.cam.trigger_mode == TriggerMode.SOFTWARE:
-            self.lock.release()
+        plot_data = self.plot_data      
         try:
             frame_time = time.time() - self.prev_frame_timestamp
             self.prev_frame_timestamp = time.time()
