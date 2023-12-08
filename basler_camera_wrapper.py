@@ -157,6 +157,17 @@ class Basler_Camera(cw.Camera):
     @property
     def binning(self):
         return self._binning
+    
+    @property
+    def triggering(self):
+        return self.cam.TriggerMode
+    
+    @triggering.setter
+    def triggering(self, value):
+        if value:
+            self.cam.TriggerMode = 'On'
+        else:
+            self.cam.TriggerMode = 'Off'
         
     def start_grabbing(self):
         if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:

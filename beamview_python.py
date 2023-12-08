@@ -12,8 +12,8 @@ from camera_window import CameraWindow
 from settings_window import SettingsWindow
 import faulthandler
 
-packet_size = 8192
-binning = 4
+packet_size = 1200
+binning = 1
 
 class Beamview(QtWidgets.QMainWindow):
     def __init__(self, app):

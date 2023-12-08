@@ -202,20 +202,17 @@ class SettingsWindow(QtWidgets.QMainWindow):
         
         save_button = QtWidgets.QPushButton(text='Save image', parent=self)
         save_button.clicked.connect(self.save_image)
+        
+        self.archive_check = QtWidgets.QCheckBox(text='Archive mode?', parent=self)
+        self.archive_check.clicked.connect(self.archive_check_click)
+        self.archive_check.setChecked(self.root.archive_mode)
+
         save_row_layout = QtWidgets.QHBoxLayout()
         self.main_layout.addLayout(save_row_layout)
         save_row_layout.addWidget(save_button)
         save_row_layout.addStretch(1)
+        save_row_layout.addWidget(self.archive_check)
 
-        archive_row_layout = QtWidgets.QHBoxLayout() 
-        self.archive_check = QtWidgets.QCheckBox(text='Archive mode?', parent=self)
-        self.archive_check.clicked.connect(self.archive_check_click)
-        self.archive_check.setChecked(self.root.archive_mode)
-        
-        archive_row_layout.addWidget(self.archive_check)
-        archive_row_layout.addStretch(1)
-        self.main_layout.addLayout(archive_row_layout)
-        
         
     def save_image(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Save image...', '', 'PNG (*.png);; JPEG (*.jpg);; npz files (*.npz)',
@@ -297,6 +294,9 @@ class SettingsWindow(QtWidgets.QMainWindow):
     def median_check_click(self, checked):
         self.active_frame.use_median_filter = checked
 
+    def trigger_check_click(self, checked):
+        self.cam.triggering = checked
+
     def archive_check_click(self, checked):
         self.root.set_archive_mode(checked)
         
@@ -334,6 +334,14 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.gain_entry.returnPressed.connect(self.gain_changed)
         acq_layout.addWidget(self.gain_entry, 1, 1)
         
+        self.trigger_check = QtWidgets.QCheckBox(parent=self)
+        trigger_label = QtWidgets.QLabel(text='Trigger on?', parent=self)
+        self.not_running_widgets.append(self.trigger_check)
+        self.not_running_widgets.append(trigger_label)
+        self.trigger_check.clicked.connect(self.trigger_check_click)
+
+        acq_layout.addWidget(trigger_label, 2, 0, Qt.AlignmentFlag.AlignRight)
+        acq_layout.addWidget(self.trigger_check, 2, 1)
         acq_layout.setColumnStretch(2, 100)
         
         # frame that contains AOI controls

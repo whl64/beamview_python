@@ -97,6 +97,11 @@ class Camera(ABC):
     def binning(self):
         pass
     
+    @property
+    @abstractmethod
+    def triggering(self):
+        pass
+    
     @abstractmethod
     def start_grabbing(self):
         pass
