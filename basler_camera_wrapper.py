@@ -46,7 +46,7 @@ class Basler_Camera(cw.Camera):
         
         if self.model != 'Emulation':
             self.cam.GevSCPSPacketSize.SetValue( packet_size )  #  9708 abs max new cam.
-            self.cam.GevSCPD.SetValue( 12000 ) #  interpacket delay
+            self.cam.GevSCPD.SetValue( 1200 ) #  interpacket delay
         
         if self.model == 'scA1400-17gm':
             self._pixel_format = 'Mono16'		#  Yes, this is 12-bit
