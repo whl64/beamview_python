@@ -16,7 +16,7 @@ packet_size = 1200
 binning = 1
 
 class Beamview(QtWidgets.QMainWindow):
-    def __init__(self, app):
+    def __init__(self, root, app):
         super().__init__()
         # layout = QtWidgets.QGridLayout()
         # self.setLayout(layout)
@@ -77,7 +77,7 @@ class Beamview(QtWidgets.QMainWindow):
         serial_number = self.devices[index].GetSerialNumber()
         if serial_number not in self.opened_cameras:
             try:
-                cam  = Basler_Camera(serial_number, TriggerMode.HARDWARE, packet_size, binning)
+                cam  = Basler_Camera(serial_number, TriggerMode.FREERUN, packet_size, binning)
             except gen.RuntimeException:
                 error_box = QtWidgets.QMessageBox()
                 error_box.setIcon(QtWidgets.QMessageBox.Critical)

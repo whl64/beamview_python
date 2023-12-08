@@ -25,12 +25,14 @@ class Basler_Camera(cw.Camera):
         self.cam = pylon.InstantCamera(tlf.CreateDevice(device))
                 
         if trigger_mode == TriggerMode.SOFTWARE:
+            raise NotImplementedError('Software triggers not supported')
             self.cam.RegisterConfiguration(pylon.SoftwareTriggerConfiguration(), pylon.RegistrationMode_ReplaceAll,
                                            pylon.Cleanup_Delete)
             self.cam.Open()
 
         elif trigger_mode == TriggerMode.FREERUN:
             self.cam.Open()
+            self.cam.TriggerMode = 'Off'
         elif trigger_mode == TriggerMode.HARDWARE:
             self.cam.Open()
             self.cam.TriggerMode = 'On'
@@ -166,10 +168,9 @@ class Basler_Camera(cw.Camera):
         self._trigger_mode = value
         if self._trigger_mode == TriggerMode.HARDWARE:
             self.cam.TriggerMode = 'On'
-            self.cam.TriggerSource = 'Line1'
+            # self.cam.TriggerSource = 'Line1'
         elif self.trigger_mode == TriggerMode.SOFTWARE:
-            self.cam.TriggerMode = 'On'
-            self.cam.TriggerSource = 'Software'
+            raise NotImplementedError('Software triggers not supported')
         elif self.trigger_mode == TriggerMode.FREERUN:
             self.cam.TriggerMode = 'Off'
         else:
