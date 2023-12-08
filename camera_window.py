@@ -172,18 +172,19 @@ class CameraWindow(QtWidgets.QMainWindow):
                 numbers = self.camera_frames.keys()
                 for sn in numbers:
                     cam = self.camera_frames[sn].cam
-                    if archive:
-                        subdir = os.path.join(self.root.archive_dir, f'{timestamp.year}_{timestamp.month:02d}_{timestamp.day:02d}')
-                        if not os.path.exists(subdir):
-                            os.mkdir(subdir)
-                        filename = os.path.join(subdir, f'{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}_{cam.name}')
-                        print(filename)
-                        # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
-                        exporter = exp.ImageExporter(self.camera_frames[sn].plot)
-                        exporter.export(filename + '.png')
-                        time.sleep(0.2)
                     if cam.is_grabbing():
+                        if archive:
+                            subdir = os.path.join(self.root.archive_dir, f'{timestamp.year}_{timestamp.month:02d}_{timestamp.day:02d}')
+                            if not os.path.exists(subdir):
+                                os.mkdir(subdir)
+                            filename = os.path.join(subdir, f'{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}_{cam.name}')
+                            print(filename)
+                            # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
+                            exporter = exp.ImageExporter(self.camera_frames[sn].plot)
+                            exporter.export(filename + '.png')
+                            time.sleep(0.2)
                         cam.request_frame()
+
             except:
                 pass
             if self.root.archive_mode:
