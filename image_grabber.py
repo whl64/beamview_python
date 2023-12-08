@@ -10,7 +10,7 @@ class ImageGrabber(pylon.ImageEventHandler):
 
     def OnImageGrabbed(self, camera, res):
         if res.IsValid():
-            with self.lock:
+            with self.camera_frame.lock:
                 self.camera_frame.plot_data = res.Array
                 self.camera_frame.frame_available = True
         else:
