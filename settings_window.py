@@ -64,7 +64,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.app.focusChanged.connect(self.focus_changed)
         
     def closeEvent(self, event):
-        self.app.quit()
+        self.hide()
+        event.ignore()
         
     def remove_camera(self, cam_to_remove):
         new_cameras = []
