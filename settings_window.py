@@ -8,16 +8,14 @@ import numpy as np
 from camera_frame import CameraFrame
 from basler_camera_wrapper import TriggerMode
 
-class SettingsWindow(QtWidgets.QMainWindow):
+class SettingsWindow(QtWidgets.QWidget):
     def __init__(self, root, app):
         super().__init__()
         self.app = app
         self.root = root
         self.setMinimumSize(200, 200)
         self.setWindowTitle('Camera settings')
-        dummy = QtWidgets.QWidget()
         self.main_layout = QtWidgets.QVBoxLayout()
-        dummy.setLayout(self.main_layout)
         self.base_entry_width = 100
         selection_box_layout = QtWidgets.QHBoxLayout()
         self.selection_box = QtWidgets.QComboBox(self)
@@ -60,8 +58,8 @@ class SettingsWindow(QtWidgets.QMainWindow):
         self.build_stat_frame()
         self.build_proc_frame()
         self.build_camera_frame()
-        self.setCentralWidget(dummy)
         self.app.focusChanged.connect(self.focus_changed)
+        self.setLayout(self.main_layout)
         
     def closeEvent(self, event):
         self.hide()
@@ -205,15 +203,15 @@ class SettingsWindow(QtWidgets.QMainWindow):
         save_button = QtWidgets.QPushButton(text='Save image', parent=self)
         save_button.clicked.connect(self.save_image)
         
-        self.archive_check = QtWidgets.QCheckBox(text='Archive mode?', parent=self)
-        self.archive_check.clicked.connect(self.archive_check_click)
-        self.archive_check.setChecked(self.root.archive_mode)
+        # self.archive_check = QtWidgets.QCheckBox(text='Archive mode?', parent=self)
+        # self.archive_check.clicked.connect(self.archive_check_click)
+        # self.archive_check.setChecked(self.root.archive_mode)
 
         save_row_layout = QtWidgets.QHBoxLayout()
         self.main_layout.addLayout(save_row_layout)
         save_row_layout.addWidget(save_button)
         save_row_layout.addStretch(1)
-        save_row_layout.addWidget(self.archive_check)
+        # save_row_layout.addWidget(self.archive_check)
 
         
     def save_image(self):

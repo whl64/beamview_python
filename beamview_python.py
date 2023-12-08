@@ -18,6 +18,7 @@ from basler_camera_wrapper import Basler_Camera, TriggerMode
 from settings_window import SettingsWindow
 from camera_list_window import CameraListWindow
 import pyqtgraph as pg
+from archive_settings import ArchiveSettings
 
 packet_size = 1200
 binning = 1
@@ -29,7 +30,11 @@ class Beamview(QtWidgets.QMainWindow):
         self.camera_frames = {}
         self.archive_mode = False
         self.archive_time = 300
-        self.archive_dir = os.path.expanduser(os.path.join('~', 'nir_archive'))
+        self.archive_dir = os.path.expanduser('~')
+        self.archive_shot_number = True
+        self.archive_shot_number_offset = 0
+        self.archive_prefix = ''
+        self.archive_suffix = ''
         print(self.archive_dir)
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
@@ -122,8 +127,12 @@ class Beamview(QtWidgets.QMainWindow):
         self.settings_window.refresh()
         
     def toggle_archive(self):
-        self.archive_mode = self.archive_action.isChecked()
-        self.settings_window.refresh()
+        if self.archive_mode:
+            self.archive_mode = False
+        else:
+            archive_settings = ArchiveSettings(self)
+            self.archive_mode = archive_settings.exec_()
+        # self.settings_window.refresh()
             
     def toggle_add_crosshair(self):
         self.adding_crosshair = self.crosshair_add_action.isChecked()
