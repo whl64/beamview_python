@@ -231,9 +231,8 @@ class CameraFrame(QtWidgets.QFrame):
                 self.lock.release()
         
     def draw_frame(self):
-        plot_data = self.plot_data
-        if self.cam.trigger_mode == TriggerMode.SOFTWARE:
-            self.lock.release()
+        plot_data = self.plot_data      
+        self.lock.release()
         try:
             frame_time = time.time() - self.prev_frame_timestamp
             self.prev_frame_timestamp = time.time()
