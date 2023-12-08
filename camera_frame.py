@@ -196,7 +196,10 @@ class CameraFrame(QtWidgets.QFrame):
     def start_camera(self):
         if not self.cam.is_grabbing():
             self.cam.start_grabbing()
-            self.cam.register_event_handler(ImageGrabber(self))
+            if not self.image_grabber:
+                self.image_grabber = ImageGrabber(self)
+            self.cam.register_event_handler(self.image_grabber)
+            
             self.status_label.setText('Running...')
             try:
                 self.cam.request_frame()

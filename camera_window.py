@@ -171,7 +171,8 @@ class CameraWindow(QtWidgets.QMainWindow):
             try:
                 numbers = self.camera_frames.keys()
                 for sn in numbers:
-                    cam = self.camera_frames[sn].cam
+                    frame = self.camera_frames[sn]
+                    cam = frame.cam
                     if cam.is_grabbing():
                         if archive:
                             subdir = os.path.join(self.root.archive_dir, f'{timestamp.year}_{timestamp.month:02d}_{timestamp.day:02d}')
@@ -184,7 +185,9 @@ class CameraWindow(QtWidgets.QMainWindow):
                             exporter.export(filename + '.png')
                             time.sleep(0.2)
                         cam.request_frame()
-
+                        res = cam.return_frame()
+                        if res:
+                            frame.image_grabber.OnImageGrabbed(cam, res)
             except:
                 pass
             if self.root.archive_mode:
