@@ -54,7 +54,7 @@ class Beamview(QMainWindow):
         self.create_toolbar()
         
         self.app = app
-        self.last_archive_time = time.time()
+        self.last_archive_time = 0
         self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
         self.trigger_thread.start()
         
@@ -76,7 +76,7 @@ class Beamview(QMainWindow):
         self.stop_all_action.triggered.connect(self.stop_all_cameras)    
         self.camera_list_action.triggered.connect(self.open_camera_list)
         self.settings_action.triggered.connect(self.open_settings)    
-        self.archive_action.toggled.connect(self.toggle_archive)
+        self.archive_action.triggered.connect(self.open_archive_settings)
         self.axis_action.toggled.connect(self.toggle_axes)
         self.crosshair_add_action.toggled.connect(self.toggle_add_crosshair)
         self.crosshair_move_action.toggled.connect(self.toggle_move_crosshair)
@@ -87,8 +87,7 @@ class Beamview(QMainWindow):
         self.stop_all_action = QAction(QIcon(':control-stop-square.png'), '&Stop all cameras', self)
         self.camera_list_action = QAction(QIcon(':script--arrow.png'), '&Camera list...', self)
         self.settings_action = QAction(QIcon(':gear.png'), '&Settings...', self)
-        self.archive_action = QAction(QIcon(':books-brown.png'), '&Toggle archive mode', self)
-        self.archive_action.setCheckable(True)    
+        self.archive_action = QAction(QIcon(':books-brown.png'), '&Archive settings', self)
         self.axis_action = QAction(QIcon(':guide.png'), '&Toggle axis labels', self)
         self.axis_action.setCheckable(True)
         self.crosshair_add_action = QAction(QIcon(':target--plus.png'), '&Add crosshair', self)
@@ -125,13 +124,20 @@ class Beamview(QMainWindow):
         for frame in self.camera_frames.values():
             frame.stop_camera()
         self.settings_window.refresh()
-        
-    def toggle_archive(self):
-        if self.archive_mode:
-            self.archive_mode = False
-        else:
-            archive_settings = ArchiveSettings(self)
-            self.archive_mode = archive_settings.exec_()
+            
+    def set_archive_parameters(self, archive_mode, archive_time, archive_dir, archive_shot_number, archive_shot_number_offset,
+                               archive_prefix, archive_suffix):
+        self.archive_mode = archive_mode
+        self.archive_time = archive_time
+        self.archive_dir = archive_dir
+        self.archive_shot_number = archive_shot_number
+        self.archive_shot_number_offset = archive_shot_number_offset
+        self.archive_prefix = archive_prefix
+        self.archive_suffix = archive_suffix
+    
+    def open_archive_settings(self):
+        archive_settings = ArchiveSettings(self)
+        archive_settings.exec_()
         # self.settings_window.refresh()
             
     def toggle_add_crosshair(self):
@@ -206,11 +212,15 @@ class Beamview(QMainWindow):
                             subdir = os.path.join(self.archive_dir, f'{timestamp.year}_{timestamp.month:02d}_{timestamp.day:02d}')
                             if not os.path.exists(subdir):
                                 os.mkdir(subdir)
-                            filename = os.path.join(subdir, f'{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}_{cam.name}')
+                            shot_number_string = f'_{self.archive_shot_number_offset}' if self.archive_shot_number else ''
+                            prefix_string = self.archive_prefix + '_' if self.archive_prefix != '' else ''
+                            suffix_string = '_' + self.archive_suffix if self.archive_suffix != '' else ''
+                            filename = os.path.join(subdir, f'{prefix_string}{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}'
+                                                    +f'_{cam.name}{suffix_string}{shot_number_string}')
                             print(filename)
                             # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
                             exporter = exp.ImageExporter(self.camera_frames[sn].plot)
-                            exporter.export(filename + '.png')
+                            exporter.export(filename + '.tiff')
                             time.sleep(0.2)
                         cam.request_frame()
                         res = cam.return_frame()
@@ -218,7 +228,9 @@ class Beamview(QMainWindow):
                 except:
                     pass
             if self.archive_mode:
-                time.sleep(5)
+                if archive and self.archive_shot_number:
+                    self.archive_shot_number_offset += 1
+                time.sleep(0.1)
             else:
                 time.sleep(0.1)
                 
