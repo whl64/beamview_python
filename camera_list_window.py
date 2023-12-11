@@ -1,27 +1,26 @@
 
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtWidgets import QMainWindow, QTreeView, QAbstractItemView
+from PyQt5.QtGui import QStandardItem, QStandardItemModel, QFont
+from PyQt5.QtCore import Qt
 
-
-class CameraListWindow(QtWidgets.QMainWindow):
+class CameraListWindow(QMainWindow):
     def __init__(self, root, app):
         super().__init__()
-        # layout = QtWidgets.QGridLayout()
-        # self.setLayout(layout)
         self.setMinimumSize(200, 200)
         self.setWindowTitle('Camera list')
         self.app = app
         self.root = root
            
-        self.camera_list = QtWidgets.QTreeView(self)
+        self.camera_list = QTreeView(self)
         self.camera_list_model = BoldItemModel()
         self.camera_list_model.setHorizontalHeaderLabels(('Name', 'Model'))
         self.camera_list.setModel(self.camera_list_model)
-        self.camera_list.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.camera_list.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.camera_list.setUniformRowHeights(True)
         
         for device in self.root.devices:
-            name = QtGui.QStandardItem(device.GetUserDefinedName())
-            model = QtGui.QStandardItem(device.GetModelName())
+            name = QStandardItem(device.GetUserDefinedName())
+            model = QStandardItem(device.GetModelName())
             name.setEditable(False)
             model.setEditable(False)
             self.camera_list_model.appendRow((name, model))
@@ -46,7 +45,7 @@ class CameraListWindow(QtWidgets.QMainWindow):
         self.camera_list_model.unboldRow(self.find_camera_index(cam))
 
         
-class BoldItemModel(QtGui.QStandardItemModel):
+class BoldItemModel(QStandardItemModel):
     def __init__(self):
         self._bold_rows = []
         super().__init__()
@@ -69,9 +68,9 @@ class BoldItemModel(QtGui.QStandardItemModel):
         self.emitRowChanged(row)
     
     def data(self, index, role):
-        if role == QtCore.Qt.FontRole:
+        if role == Qt.FontRole:
             if self._bold_rows[index.row()]:
-                boldFont = QtGui.QFont()
+                boldFont = QFont()
                 boldFont.setBold(True)
                 return boldFont
         return super().data(index, role)

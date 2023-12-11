@@ -1,7 +1,6 @@
 from multiprocessing import dummy
-from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QActionGroup
+from PyQt5.QtWidgets import QAction, QActionGroup, QMainWindow, QWidget, QGridLayout, QApplication, QMessageBox
 import threading
 import time
 import datetime
@@ -23,11 +22,12 @@ from archive_settings import ArchiveSettings
 packet_size = 1200
 binning = 1
 
-class Beamview(QtWidgets.QMainWindow):    
+class Beamview(QMainWindow):    
     def __init__(self, app):
         super().__init__()
         self.setWindowTitle('Beamview')
         self.camera_frames = {}
+        
         self.archive_mode = False
         self.archive_time = 300
         self.archive_dir = os.path.expanduser('~')
@@ -35,15 +35,15 @@ class Beamview(QtWidgets.QMainWindow):
         self.archive_shot_number_offset = 0
         self.archive_prefix = ''
         self.archive_suffix = ''
-        print(self.archive_dir)
+        
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
         for i, device in enumerate(self.devices):
             if device.GetUserDefinedName() == '':
                 device.SetUserDefinedName(f'Camera {i}')
                 
-        dummy_widget = QtWidgets.QWidget()
-        self.grid = QtWidgets.QGridLayout()
+        dummy_widget = QWidget()
+        self.grid = QGridLayout()
         dummy_widget.setLayout(self.grid)
         self.setCentralWidget(dummy_widget)
         self.adding_crosshair = False
@@ -236,8 +236,8 @@ class Beamview(QtWidgets.QMainWindow):
             try:
                 cam  = Basler_Camera(serial_number, TriggerMode.FREERUN, packet_size, binning)
             except gen.RuntimeException:
-                error_box = QtWidgets.QMessageBox()
-                error_box.setIcon(QtWidgets.QMessageBox.Critical)
+                error_box = QMessageBox()
+                error_box.setIcon(QMessageBox.Critical)
                 error_box.setWindowTitle('Error')
                 error_box.setText('Error: Camera in use by another application.')
                 error_box.show()
@@ -303,7 +303,7 @@ def main():
         faulthandler.enable()
         number_of_emulated_cameras = 20
         os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
-    app = QtWidgets.QApplication([])
+    app = QApplication([])
     pg.setConfigOption('imageAxisOrder', 'row-major')
     beamview = Beamview(app)
     beamview.show()

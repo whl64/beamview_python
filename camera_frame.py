@@ -6,7 +6,9 @@ import faulthandler
 import os
 import cmasher as cmr
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton)
+from PyQt5.QtGui import QTransform
+from PyQt5.QtCore import Qt, QTimer
 import pyqtgraph as pg
 
 import numpy as np
@@ -14,7 +16,7 @@ import scipy.ndimage as ndi
 from basler_camera_wrapper import Basler_Camera, TriggerMode
 from pypylon import pylon
 
-class CameraFrame(QtWidgets.QFrame):
+class CameraFrame(QFrame):
     # format: "friendly name" displayed to users, "real name" used by getFromMatplotlib     
     colormaps = {'ember': 'cmr.ember',
                  'freeze': 'cmr.freeze',
@@ -35,13 +37,13 @@ class CameraFrame(QtWidgets.QFrame):
         self.default_fig_width = 5
         # set up plotting canvas
         
-        main_layout = QtWidgets.QVBoxLayout()
-        status_layout = QtWidgets.QHBoxLayout()
-        info_layout = QtWidgets.QVBoxLayout()
-        info_layout_0 = QtWidgets.QHBoxLayout()
-        info_layout_1 = QtWidgets.QHBoxLayout()
-        info_layout_2 = QtWidgets.QHBoxLayout()
-        info_layout_3 = QtWidgets.QHBoxLayout()
+        main_layout = QVBoxLayout()
+        status_layout = QHBoxLayout()
+        info_layout = QVBoxLayout()
+        info_layout_0 = QHBoxLayout()
+        info_layout_1 = QHBoxLayout()
+        info_layout_2 = QHBoxLayout()
+        info_layout_3 = QHBoxLayout()
         
         main_layout.addLayout(status_layout)
         status_layout.addLayout(info_layout)
@@ -50,30 +52,30 @@ class CameraFrame(QtWidgets.QFrame):
         info_layout.addLayout(info_layout_2)
         info_layout.addLayout(info_layout_3)
                 
-        info_layout_0.addWidget(QtWidgets.QLabel(text=self.cam.name, parent=self))
+        info_layout_0.addWidget(QLabel(text=self.cam.name, parent=self))
         
-        self.status_label = QtWidgets.QLabel('Stopped.', parent=self)
+        self.status_label = QLabel('Stopped.', parent=self)
         info_layout_0.addWidget(self.status_label)
-        info_layout_0.addWidget(QtWidgets.QLabel(f'Binning: {self.cam.binning}'))
+        info_layout_0.addWidget(QLabel(f'Binning: {self.cam.binning}'))
         info_layout_0.addStretch(1)
         
-        self.frame_time_label = QtWidgets.QLabel(text='Frame time: 0.000 s', parent=self)
+        self.frame_time_label = QLabel(text='Frame time: 0.000 s', parent=self)
         info_layout_1.addWidget(self.frame_time_label)        
 
-        self.max_data_label = QtWidgets.QLabel(text='Max data: 0.0%  ', parent=self)
+        self.max_data_label = QLabel(text='Max data: 0.0%  ', parent=self)
         info_layout_1.addWidget(self.max_data_label)
         info_layout_1.addStretch(1)
         
-        self.centroid_label = QtWidgets.QLabel(text='Centroids (px): (N/A, N/A)', parent=self)
+        self.centroid_label = QLabel(text='Centroids (px): (N/A, N/A)', parent=self)
         info_layout_2.addWidget(self.centroid_label)
         info_layout_2.addStretch(1)
         
-        self.sigma_label = QtWidgets.QLabel(text='Sigmas (px): (N/A, N/A)', parent=self)
+        self.sigma_label = QLabel(text='Sigmas (px): (N/A, N/A)', parent=self)
         info_layout_3.addWidget(self.sigma_label)
         info_layout_3.addStretch(1)
         
-        close_button = QtWidgets.QPushButton(text='Close camera', parent=self)
-        close_layout = QtWidgets.QVBoxLayout()
+        close_button = QPushButton(text='Close camera', parent=self)
+        close_layout = QVBoxLayout()
         close_layout.addStretch(1)
         close_layout.addWidget(close_button)
         
@@ -100,7 +102,7 @@ class CameraFrame(QtWidgets.QFrame):
         self.y_offset = 0
         
         self.fig = pg.GraphicsLayoutWidget()
-        self.fig.setCursor(QtCore.Qt.CrossCursor)
+        self.fig.setCursor(Qt.CrossCursor)
         self.fig.ci.setContentsMargins(0, 0, 0, 0)
         self.plot = self.fig.addPlot()
         self.plot.setAspectLocked(True)
@@ -119,14 +121,14 @@ class CameraFrame(QtWidgets.QFrame):
         self.cbar.setImageItem(self.img)
         self.fig.addItem(self.cbar)
         
-        # font = QtGui.QFont()
+        # font = .QFont()
         # font.setPixelSize(16)
         # self.plot.getAxis('bottom').setTickFont(font)
         # self.plot.getAxis('left').setTickFont(font)
         self.show_axes = False
         self.plot.showAxis('bottom', self.show_axes)
         self.plot.showAxis('left', self.show_axes)
-        self.tr = QtGui.QTransform()
+        self.tr = QTransform()
         
         main_layout.addWidget(self.fig)
         self.setLayout(main_layout)
@@ -146,7 +148,7 @@ class CameraFrame(QtWidgets.QFrame):
         self.lock = threading.Lock()
         
         self.stop_camera()
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.timer.timeout.connect(self.update_frames)
         self.timer.start(100)
         self.setMinimumHeight(400)
@@ -295,11 +297,11 @@ class CameraFrame(QtWidgets.QFrame):
             print(e)
     
     def activate(self):
-        self.setFrameStyle(QtWidgets.QFrame.Box | QtWidgets.QFrame.Plain)
+        self.setFrameStyle(QFrame.Box | QFrame.Plain)
         self.setStyleSheet('#frame {border: 1px solid red; }')
         
     def deactivate(self):
-        self.setFrameStyle(QtWidgets.QFrame.NoFrame)
+        self.setFrameStyle(QFrame.NoFrame)
         self.setStyleSheet('')
 
     def imageHoverEvent(self, event):
@@ -318,7 +320,7 @@ class CameraFrame(QtWidgets.QFrame):
         self.plot.setTitle("pos: (%0.1f, %0.1f)<br>pixel: (%d, %d)  value: %.3g" % (x, y, i, j, val))
         
     def imageClickEvent(self, event):
-        if self.master.adding_crosshair and event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if self.master.adding_crosshair and event.button() == Qt.MouseButton.LeftButton:
             pos = event.pos()
             i, j = pos.x(), pos.y()
             i = int(np.clip(i, 0, self.plot_data.shape[0] - 1))
@@ -349,28 +351,13 @@ class Crosshair(pg.TargetItem):
         
     def mouseClickEvent(self, ev):
         ev.accept()
-        if self.frame.master.deleting_crosshair and ev.button() == QtCore.Qt.MouseButton.LeftButton:
+        if self.frame.master.deleting_crosshair and ev.button() == Qt.MouseButton.LeftButton:
             self.frame.remove_crosshair(self)
         else:
             super().mouseClickEvent(ev)
 
     def hoverEvent(self, ev):
-        if (self.movable or self.highlight) and (not ev.isExit()) and ev.acceptDrags(QtCore.Qt.MouseButton.LeftButton):
+        if (self.movable or self.highlight) and (not ev.isExit()) and ev.acceptDrags(Qt.MouseButton.LeftButton):
             self.setMouseHover(True)
         else:
             self.setMouseHover(False)
-
-if __name__ == '__main__':
-    pg.setConfigOption('imageAxisOrder', 'row-major')
-    faulthandler.enable()
-    number_of_emulated_cameras = 20
-    os.environ['PYLON_CAMEMU'] = str(number_of_emulated_cameras)
-    tlf = pylon.TlFactory.GetInstance()
-    devices = tlf.EnumerateDevices()
-
-    real_camera = Basler_Camera(devices[0].GetSerialNumber(), TriggerMode.FREERUN, 8192)
-    
-    app = QtWidgets.QApplication([])
-    frame = CameraFrame(None, real_camera, app)
-    frame.show()
-    app.exec()
