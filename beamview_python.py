@@ -27,6 +27,7 @@ class Beamview(QMainWindow):
         self.setWindowTitle('Beamview')
         self.camera_frames = {}
         
+        # archiver default settings
         self.archive_mode = False
         self.archive_time = 300
         self.archive_dir = os.path.expanduser('~')
@@ -35,12 +36,14 @@ class Beamview(QMainWindow):
         self.archive_prefix = ''
         self.archive_suffix = ''
         
+        # get basler devices
         tlf = pylon.TlFactory.GetInstance()
         self.devices = tlf.EnumerateDevices()
         for i, device in enumerate(self.devices):
             if device.GetUserDefinedName() == '':
                 device.SetUserDefinedName(f'Camera {i}')
-                
+        
+        # create grid for camera frames
         dummy_widget = QWidget()
         self.grid = QGridLayout()
         dummy_widget.setLayout(self.grid)
@@ -48,11 +51,15 @@ class Beamview(QMainWindow):
         self.adding_crosshair = False
         self.moving_crosshair = False
         self.deleting_crosshair = False
+
+        # make toolbar
         self.create_actions()
         self.connect_actions()
         self.create_toolbar()
         
         self.app = app
+
+        # disabling trigger thread, since software triggering is disabled
 #        self.last_archive_time = 0
 #        self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
 #        self.trigger_thread.start()
@@ -196,6 +203,7 @@ class Beamview(QMainWindow):
             else:
                 frame.deactivate()
 
+    # not used when software trigger is disabled
     def trigger_loop(self):
         while 1:
             archive = False

@@ -17,6 +17,7 @@ import numpy as np
 import scipy.ndimage as ndi
 from basler_camera_wrapper import Basler_Camera, TriggerMode
 from pypylon import pylon
+from PIL import Image
 
 class CameraFrame(QFrame):
     # format: "friendly name" displayed to users, "real name" used by getFromMatplotlib     
@@ -64,7 +65,7 @@ class CameraFrame(QFrame):
         self.frame_time_label = QLabel(text='Frame time: 0.000 s', parent=self)
         info_layout_1.addWidget(self.frame_time_label)        
 
-        self.max_data_label = QLabel(text='Max data: 0.0%  ', parent=self)
+        self.max_data_label = QLabel(text='Saturated pixels: 0.0%  ', parent=self)
         info_layout_1.addWidget(self.max_data_label)
         info_layout_1.addStretch(1)
         
@@ -237,7 +238,8 @@ class CameraFrame(QFrame):
                 self.lock.release()
         
     def draw_frame(self):
-        plot_data = self.plot_data      
+        plot_data = self.plot_data
+        raw_data = np.copy(self.plot_data)
         self.lock.release()
         try:
             frame_time = time.time() - self.prev_frame_timestamp
@@ -248,14 +250,22 @@ class CameraFrame(QFrame):
 
             if self.use_median_filter:
                 plot_data = ndi.median_filter(plot_data, size=2)
-                
-            max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
-            max_data_string = f'{max_data_percent:.1f}'
-            self.max_data_label.setText(f'Max data: {max_data_string: <6}%')
-            if max_data_percent > 97:
-                self.max_data_label.setStyleSheet('background-color: red')
-            else:
-                self.max_data_label.setStyleSheet('background-color: none')
+            
+            saturation = 2**self.bit_depth - 1
+            unique, counts = np.unique(plot_data, return_counts=True)
+            sat_pixels = dict(zip(unique, counts))
+            # max_data_percent = 100 * np.max(plot_data) / (2**self.bit_depth - 1)
+            try:
+                sat_pixels = sat_pixels[saturation]
+            except KeyError:
+                sat_pixels = 0
+            max_data_string = f'{sat_pixels:.4g}'
+            total_counts = np.sum(plot_data)
+            self.max_data_label.setText(f'Saturated pixels: {max_data_string}, total counts: {total_counts:.4g}')
+            #if sat_pixel_percent > 97:
+#                self.max_data_label.setStyleSheet('background-color: red')
+#            else:
+#                self.max_data_label.setStyleSheet('background-color: none')
             if self.use_threshold:
                 max_data = np.max(plot_data)
                 plot_data[plot_data < max_data*self.threshold/100] = 0
@@ -305,8 +315,10 @@ class CameraFrame(QFrame):
                     filename = os.path.join(self.master.archive_dir, f'{prefix_string}{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}'+f'_{self.cam.name}{suffix_string}{shot_number_string}')
                     print(filename)
 # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
-                    exporter = exp.ImageExporter(self.plot)
-                    exporter.export(filename + '.tiff')
+                    im = Image.fromarray(raw_data)
+                    im.save(filename + '.tiff', 'TIFF')
+                    # exporter = exp.ImageExporter(self.plot)
+                    # exporter.export(filename + '.tiff')
                     # res = cam.return_frame()
                     # frame.image_grabber.OnImageGrabbed(cam, res)
                     self.shot_number += 1
