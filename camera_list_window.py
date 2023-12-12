@@ -44,6 +44,11 @@ class CameraListWindow(QMainWindow):
     def remove_camera(self, cam):
         self.camera_list_model.unboldRow(self.find_camera_index(cam))
 
+    def find_camera_index(self, cam):
+        for i, bascam in enumerate(self.root.devices):
+            if cam.serial_number == bascam.GetSerialNumber():
+                return i
+        raise ValueError('Camera not found')
         
 class BoldItemModel(QStandardItemModel):
     def __init__(self):

@@ -203,8 +203,8 @@ class Beamview(QMainWindow):
                 archive = True
                 timestamp = datetime.datetime.now()
             numbers = self.camera_frames.keys()
-            for sn in numbers:
-                try:
+            try:
+                for sn in numbers:
                     frame = self.camera_frames[sn]
                     cam = frame.cam
                     if cam.is_grabbing():
@@ -221,12 +221,11 @@ class Beamview(QMainWindow):
                             # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
                             exporter = exp.ImageExporter(self.camera_frames[sn].plot)
                             exporter.export(filename + '.tiff')
-                            time.sleep(0.2)
                         cam.request_frame()
                         res = cam.return_frame()
                         frame.image_grabber.OnImageGrabbed(cam, res)
-                except:
-                    pass
+            except Exception as e:
+                print(e)
             if self.archive_mode:
                 if archive and self.archive_shot_number:
                     self.archive_shot_number_offset += 1
@@ -273,13 +272,7 @@ class Beamview(QMainWindow):
         self.settings_window.remove_camera(cam)
         if cam.serial_number in self.opened_cameras:
             del self.opened_cameras[cam.serial_number]
-            self.camera_list.remove_camera(cam)
-
-    def find_camera_index(self, cam):
-        for i, bascam in enumerate(self.devices):
-            if cam.serial_number == bascam.GetSerialNumber():
-                return i
-        raise ValueError('Camera not found')
+            self.camera_list_window.remove_camera(cam)
 
     def set_delays(self):
         accumulated_delay = 0

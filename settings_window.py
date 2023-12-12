@@ -141,7 +141,11 @@ class SettingsWindow(QWidget):
         self.max_range_entry.setText(str(self.active_frame.vmax))
         
         self.colormap_box.setValue(self.active_frame.cmap)
-        
+        if self.cam.trigger_mode == TriggerMode.HARDWARE:
+            trigger = True
+        elif self.cam.trigger_mode == TriggerMode.FREERUN:
+            trigger = False
+        self.trigger_check.setChecked(trigger)
         self.root.select_camera(self.cam)
         
     def populate_range_entries(self):
