@@ -178,7 +178,8 @@ class Basler_Camera(cw.Camera):
         
     def start_grabbing(self):
         if self.trigger_mode == TriggerMode.FREERUN or self.trigger_mode == TriggerMode.HARDWARE:
-            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByUser)
+#            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByUser)
+            self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
         elif self.trigger_mode == TriggerMode.SOFTWARE:
             self.cam.StartGrabbing(pylon.GrabStrategy_LatestImageOnly, pylon.GrabLoop_ProvidedByInstantCamera)
     

@@ -22,6 +22,7 @@ class ArchiveSettings(QDialog):
         self.layout = QVBoxLayout()
         
         self.archive_check = QCheckBox(text='Enable archiving?', parent=self)
+        self.archive_check.setChecked(self.root.archive_mode)
         self.layout.addWidget(self.archive_check)
         
         directory_row = QHBoxLayout()
@@ -50,7 +51,7 @@ class ArchiveSettings(QDialog):
         self.shot_number_check.setChecked(self.root.archive_shot_number)
         self.shot_number_check.stateChanged.connect(self.trigger_refresh_from_widget)
         shot_number_row.addWidget(self.shot_number_check)
-        shot_number_row.addWidget(QLabel(text='Offset:'))
+        shot_number_row.addWidget(QLabel(text='Starting shot number:'))
         self.shot_number_box = QLineEdit(text=str(self.root.archive_shot_number_offset))
         shot_number_validator = QIntValidator(bottom=0, parent=self)
         self.shot_number_box.setValidator(shot_number_validator)

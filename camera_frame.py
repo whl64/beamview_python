@@ -5,6 +5,8 @@ import argparse
 import faulthandler
 import os
 import cmasher as cmr
+import datetime
+import pyqtgraph.exporters as exp
 
 from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton)
 from PyQt5.QtGui import QTransform
@@ -156,7 +158,8 @@ class CameraFrame(QFrame):
         self.image_grabber = ImageGrabber(self)
         self.cam.register_event_handler(self.image_grabber)
 
-
+        self.last_archive_time = 0
+        self.shot_number = 0
         
     def toggle_axes(self):
         self.show_axes = not self.show_axes
@@ -292,6 +295,23 @@ class CameraFrame(QFrame):
                 self.sigma_label.setEnabled(False)
 
             self.img.setImage(plot_data[::-1,], autoLevels=False)
+            if self.master.archive_mode and time.time() - self.last_archive_time > self.master.archive_time:
+                self.last_archive_time = time.time()
+                timestamp = datetime.datetime.now()
+                try:
+                    shot_number_string = f'_{self.shot_number}' if self.master.archive_shot_number else ''
+                    prefix_string = self.master.archive_prefix + '_' if self.master.archive_prefix != '' else ''
+                    suffix_string = '_' + self.master.archive_suffix if self.master.archive_suffix != '' else ''
+                    filename = os.path.join(self.master.archive_dir, f'{prefix_string}{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}'+f'_{self.cam.name}{suffix_string}{shot_number_string}')
+                    print(filename)
+# np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
+                    exporter = exp.ImageExporter(self.plot)
+                    exporter.export(filename + '.tiff')
+                    # res = cam.return_frame()
+                    # frame.image_grabber.OnImageGrabbed(cam, res)
+                    self.shot_number += 1
+                except Exception as e:
+                    print(e)
             self.app.processEvents()
         except RuntimeError as e:
             print(e)

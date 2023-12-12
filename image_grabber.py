@@ -9,10 +9,12 @@ class ImageGrabber(pylon.ImageEventHandler):
         self.last_frame_timestamp = time.time()
 
     def OnImageGrabbed(self, camera, res):
+#        print('hello')
         if res.IsValid():
             with self.camera_frame.lock:
                 self.camera_frame.plot_data = res.Array
                 self.camera_frame.frame_available = True
+                self.last_frame_timestamp = time.time()
 
 
 

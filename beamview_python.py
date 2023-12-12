@@ -6,7 +6,6 @@ import time
 import datetime
 import numpy as np
 from camera_frame import CameraFrame
-import pyqtgraph.exporters as exp
 import os
 import qrc_icons
 import faulthandler
@@ -54,9 +53,9 @@ class Beamview(QMainWindow):
         self.create_toolbar()
         
         self.app = app
-        self.last_archive_time = 0
-        self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
-        self.trigger_thread.start()
+#        self.last_archive_time = 0
+#        self.trigger_thread = threading.Thread(target=self.trigger_loop, daemon=True)
+#        self.trigger_thread.start()
         
         self.opened_cameras = {}
         self.running_cameras = {}
@@ -131,6 +130,8 @@ class Beamview(QMainWindow):
         self.archive_time = archive_time
         self.archive_dir = archive_dir
         self.archive_shot_number = archive_shot_number
+        for frame in self.camera_frames.values():
+            frame.shot_number = archive_shot_number_offset
         self.archive_shot_number_offset = archive_shot_number_offset
         self.archive_prefix = archive_prefix
         self.archive_suffix = archive_suffix
@@ -222,8 +223,8 @@ class Beamview(QMainWindow):
                             exporter = exp.ImageExporter(self.camera_frames[sn].plot)
                             exporter.export(filename + '.tiff')
                         cam.request_frame()
-                        res = cam.return_frame()
-                        frame.image_grabber.OnImageGrabbed(cam, res)
+#                        res = cam.return_frame()
+#                        frame.image_grabber.OnImageGrabbed(cam, res)
             except Exception as e:
                 print(e)
             if self.archive_mode:
