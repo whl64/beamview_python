@@ -57,15 +57,17 @@ class CameraFrame(QFrame):
                 
         info_layout_0.addWidget(QLabel(text=self.cam.name, parent=self))
         
-        self.status_label = QLabel('Stopped.', parent=self)
+        self.status_label = QLabel('Stopped.  ', parent=self)
         info_layout_0.addWidget(self.status_label)
         info_layout_0.addWidget(QLabel(f'Binning: {self.cam.binning}'))
+        self.total_count_label = QLabel(text=f'Total counts: {"0":<12}', parent=self)
+        info_layout_0.addWidget(self.total_count_label)
         info_layout_0.addStretch(1)
         
         self.frame_time_label = QLabel(text='Frame time: 0.000 s', parent=self)
         info_layout_1.addWidget(self.frame_time_label)        
 
-        self.max_data_label = QLabel(text='Saturated pixels: 0.0%  ', parent=self)
+        self.max_data_label = QLabel(text='Saturated pixels: 0     ', parent=self)
         info_layout_1.addWidget(self.max_data_label)
         info_layout_1.addStretch(1)
         
@@ -215,7 +217,7 @@ class CameraFrame(QFrame):
     def stop_camera(self):
         if self.cam.is_grabbing():
             self.cam.stop_grabbing()
-            self.status_label.setText('Stopped.')
+            self.status_label.setText('Stopped.  ')
             self.master.stop_camera(self.cam)
         
     def auto_range(self):
@@ -244,13 +246,16 @@ class CameraFrame(QFrame):
         try:
             frame_time = time.time() - self.prev_frame_timestamp
             self.prev_frame_timestamp = time.time()
-            if frame_time > 50:
-                frame_time = 50
-            self.frame_time_label.setText(f'Frame time: {frame_time:.3f} s')
+            # if frame_time > 50:
+            #     frame_time = 50
+            frame_time_text = f'{frame_time:.3f} s'
+            self.frame_time_label.setText(f'Frame time: {frame_time_text:<12}')
 
             if self.use_median_filter:
                 plot_data = ndi.median_filter(plot_data, size=2)
-            
+            total_counts = np.sum(plot_data)                
+            total_count_string = f'{total_counts:.4g}'
+            self.total_count_label.setText(f'Total counts: {total_count_string:<10}')
             saturation = 2**self.bit_depth - 1
             unique, counts = np.unique(plot_data, return_counts=True)
             sat_pixels = dict(zip(unique, counts))
@@ -260,8 +265,8 @@ class CameraFrame(QFrame):
             except KeyError:
                 sat_pixels = 0
             max_data_string = f'{sat_pixels:.4g}'
-            total_counts = np.sum(plot_data)
-            self.max_data_label.setText(f'Saturated pixels: {max_data_string}, total counts: {total_counts:.4g}')
+
+            self.max_data_label.setText(f'Saturated pixels: {max_data_string:<6}')
             #if sat_pixel_percent > 97:
 #                self.max_data_label.setStyleSheet('background-color: red')
 #            else:

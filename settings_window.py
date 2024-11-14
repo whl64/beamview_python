@@ -219,9 +219,19 @@ class SettingsWindow(QWidget):
 
         
     def save_image(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save image...', '', 'TIFF (*.tiff);; PNG (*.png);; JPEG (*.jpg);; npz files (*.npz)',
-                                                         'TIFF (*.TIFF)')[0]
-        
+        label_to_suffix = {'TIFF (*.tiff)': '.tiff', 'PNG (*.png)': '.png', 'JPEG (*.jpg)': '.jpg', 'npz files (*.npz)': '.npz'}
+        filters = ''
+        first = True
+        for k in label_to_suffix.keys():
+            if first:
+                first = False
+            else:
+                filters += ';;'
+            
+            filters += k
+        filename, fil = QFileDialog.getSaveFileName(self, 'Save image...', '', filters, 'TIFF (*.TIFF)')
+        if not filename.upper().endswith(label_to_suffix[fil].upper()):
+            filename += label_to_suffix[fil]
         if filename.endswith('.npz'):
             np.savez(filename, plot_data=self.active_frame.plot_data, pixel_calibration=self.calibration)
         else:

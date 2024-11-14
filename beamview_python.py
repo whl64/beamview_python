@@ -18,8 +18,8 @@ from camera_list_window import CameraListWindow
 import pyqtgraph as pg
 from archive_settings import ArchiveSettings
 
-packet_size = 1200
-binning = 1
+packet_size = 700
+binning = 4
 
 class Beamview(QMainWindow):    
     def __init__(self, app):
@@ -286,6 +286,7 @@ class Beamview(QMainWindow):
     def set_delays(self):
         accumulated_delay = 0
         delay_offset = 0
+        maximum_interpacket_delay = 6000
         for cam in self.opened_cameras.values():
             try:
                 cam.frame_transmission_delay = accumulated_delay + delay_offset
@@ -294,8 +295,9 @@ class Beamview(QMainWindow):
             except gen.LogicalErrorException:
                 pass
         for cam in self.opened_cameras.values():
+            interpacket_delay = accumulated_delay if accumulated_delay < maximum_interpacket_delay else maximum_interpacket_delay
             try:
-                cam.interpacket_delay = accumulated_delay
+                cam.interpacket_delay = interpacket_delay
             except gen.LogicalErrorException:
                 pass
 
