@@ -1,6 +1,7 @@
 from multiprocessing import dummy
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QActionGroup, QMainWindow, QWidget, QGridLayout, QApplication, QMessageBox
+from PyQt5.QtCore import pyqtSlot
 import threading
 import time
 import datetime
@@ -17,6 +18,7 @@ from settings_window import SettingsWindow
 from camera_list_window import CameraListWindow
 import pyqtgraph as pg
 from archive_settings import ArchiveSettings
+import json
 
 packet_size = 700
 binning = 4
@@ -29,6 +31,7 @@ class Beamview(QMainWindow):
         
         # archiver default settings
         self.archive_mode = False
+        self.low_res_mode = False
         self.archive_time = 300
         self.archive_dir = os.path.expanduser('~')
         self.archive_shot_number = True
@@ -131,9 +134,10 @@ class Beamview(QMainWindow):
             frame.stop_camera()
         self.settings_window.refresh()
             
-    def set_archive_parameters(self, archive_mode, archive_time, archive_dir, archive_shot_number, archive_shot_number_offset,
+    def set_archive_parameters(self, archive_mode, low_res_mode, archive_time, archive_dir, archive_shot_number, archive_shot_number_offset,
                                archive_prefix, archive_suffix):
         self.archive_mode = archive_mode
+        self.low_res_mode = low_res_mode
         self.archive_time = archive_time
         self.archive_dir = archive_dir
         self.archive_shot_number = archive_shot_number
@@ -228,7 +232,7 @@ class Beamview(QMainWindow):
                                                     +f'_{cam.name}{suffix_string}{shot_number_string}')
                             print(filename)
                             # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
-                            exporter = exp.ImageExporter(self.camera_frames[sn].plot)
+                            exporter = pg.exporters.ImageExporter(self.camera_frames[sn].plot)
                             exporter.export(filename + '.tiff')
                         cam.request_frame()
 #                        res = cam.return_frame()
@@ -267,20 +271,23 @@ class Beamview(QMainWindow):
                 cam.name = self.devices[index].GetUserDefinedName()
             self.opened_cameras[serial_number] = cam
             frame = CameraFrame(self, cam, self.app)
+            frame.close_signal.connect(self.remove_camera)
             self.camera_frames[cam.serial_number] = frame
             self.assign_frame_to_grid(frame, len(self.camera_frames) - 1)
             self.settings_window.add_camera(cam, frame)
             self.select_camera(cam)
 
-    def remove_camera(self, camera_frame):
+    @pyqtSlot(str)
+    def remove_camera(self, serial_number):
+        camera_frame = self.camera_frames[serial_number]
         cam = camera_frame.cam
         self.grid.removeWidget(camera_frame)
         camera_frame.setParent(None)
-        del self.camera_frames[cam.serial_number]
+        del self.camera_frames[serial_number]
         self.regrid()
         self.settings_window.remove_camera(cam)
-        if cam.serial_number in self.opened_cameras:
-            del self.opened_cameras[cam.serial_number]
+        if serial_number in self.opened_cameras:
+            del self.opened_cameras[serial_number]
             self.camera_list_window.remove_camera(cam)
 
     def set_delays(self):
@@ -310,6 +317,9 @@ class Beamview(QMainWindow):
         if cam.serial_number in self.running_cameras:
             del self.running_cameras[cam.serial_number]
             self.set_delays()
+            
+    def save_configuration(self):
+        pass
                 
 def main():
     parser = argparse.ArgumentParser(description='Multicam Beamview.')

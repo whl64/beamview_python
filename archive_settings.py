@@ -21,9 +21,14 @@ class ArchiveSettings(QDialog):
         
         self.layout = QVBoxLayout()
         
+        top_row = QHBoxLayout()        
         self.archive_check = QCheckBox(text='Enable archiving?', parent=self)
         self.archive_check.setChecked(self.root.archive_mode)
-        self.layout.addWidget(self.archive_check)
+        top_row.addWidget(self.archive_check)
+        
+        self.low_res_check = QCheckBox(text='Enable low resolution mode?', parent=self)
+        self.low_res_check.setChecked(self.root.low_res_mode)
+        self.layout.addLayout(top_row)
         
         directory_row = QHBoxLayout()
         self.directory_box = QLineEdit(text=self.root.archive_dir, parent=self)
@@ -90,7 +95,7 @@ class ArchiveSettings(QDialog):
         self.directory_box.setText(filename)       
         
     def accept(self):
-        self.root.set_archive_parameters(self.archive_check.isChecked(),int(self.interval_box.text()), self.directory_box.text(),
+        self.root.set_archive_parameters(self.archive_check.isChecked(), self.low_res_check.isChecked(), int(self.interval_box.text()), self.directory_box.text(),
                                          self.shot_number_check.isChecked(), int(self.shot_number_box.text()),
                                          self.prefix_box.text(), self.suffix_box.text())
         super().accept()

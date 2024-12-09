@@ -10,7 +10,7 @@ import pyqtgraph.exporters as exp
 
 from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton)
 from PyQt5.QtGui import QTransform
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 import pyqtgraph as pg
 
 import numpy as np
@@ -29,6 +29,7 @@ class CameraFrame(QFrame):
                  'viridis': 'viridis',
                  'inferno': 'inferno'}
     default_cmap = 'cmr.ember'
+    close_signal = pyqtSignal(str)
     
     def __init__(self, master, cam, app):
         super().__init__(master)
@@ -198,7 +199,7 @@ class CameraFrame(QFrame):
 
     def close(self):
         self.cleanup()
-        self.master.remove_camera(self)
+        self.close_signal.emit(self.cam.serial_number)
             
     def cleanup(self):
         self.cam.stop_grabbing()
@@ -319,11 +320,14 @@ class CameraFrame(QFrame):
                     suffix_string = '_' + self.master.archive_suffix if self.master.archive_suffix != '' else ''
                     filename = os.path.join(self.master.archive_dir, f'{prefix_string}{timestamp.year}{timestamp.month:02d}{timestamp.day:02d}_{timestamp.hour:02d}{timestamp.minute:02d}{timestamp.second:02d}'+f'_{self.cam.name}{suffix_string}{shot_number_string}')
                     print(filename)
-# np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
-                    im = Image.fromarray(raw_data)
-                    im.save(filename + '.tiff', 'TIFF')
-                    # exporter = exp.ImageExporter(self.plot)
-                    # exporter.export(filename + '.tiff')
+                    # np.savez(filename + '.npz', plot_data=self.camera_frames[sn].plot_data)
+                    if self.master.low_res_mode:
+                        exporter = exp.ImageExporter(self.plot)
+                        exporter.export(filename + '.png')
+                    else:
+                        im = Image.fromarray(raw_data)
+                        im.save(filename + '.tiff', 'TIFF')
+
                     # res = cam.return_frame()
                     # frame.image_grabber.OnImageGrabbed(cam, res)
                     self.shot_number += 1

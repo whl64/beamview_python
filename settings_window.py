@@ -313,9 +313,6 @@ class SettingsWindow(QWidget):
             self.cam.trigger_mode = TriggerMode.HARDWARE
         else:
             self.cam.trigger_mode = TriggerMode.FREERUN
-
-    def archive_check_click(self, checked):
-        self.root.set_archive_mode(checked)
         
     def thresh_check_click(self, checked):
         self.active_frame.use_threshold = checked
