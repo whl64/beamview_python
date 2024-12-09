@@ -28,6 +28,8 @@ class ArchiveSettings(QDialog):
         
         self.low_res_check = QCheckBox(text='Enable low resolution mode?', parent=self)
         self.low_res_check.setChecked(self.root.low_res_mode)
+        self.low_res_check.stateChanged.connect(self.trigger_refresh_from_widget)
+        top_row.addWidget(self.low_res_check)
         self.layout.addLayout(top_row)
         
         directory_row = QHBoxLayout()
@@ -87,7 +89,8 @@ class ArchiveSettings(QDialog):
         shot_number_string = r'_{shot_number}' if self.shot_number_check.isChecked() else ''
         prefix_string = self.prefix_box.text() + '_' if self.prefix_box.text() != '' else ''
         suffix_string = '_' + self.suffix_box.text() if self.suffix_box.text() != '' else ''
-        preview_string = f'Filename preview: {prefix_string}{self.base_filename}{suffix_string}{shot_number_string}.tiff'
+        file_ext_string = '.png' if self.low_res_check.isChecked() else '.tiff'
+        preview_string = f'Filename preview: {prefix_string}{self.base_filename}{suffix_string}{shot_number_string}{file_ext_string}'
         self.preview_label.setText(preview_string)
 
     def find_file(self):
