@@ -1,7 +1,7 @@
 from multiprocessing import dummy
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QActionGroup, QMainWindow, QWidget, QGridLayout, QApplication, QMessageBox
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QAction, QActionGroup, QMainWindow, QWidget, QGridLayout, QApplication, QMessageBox, QScrollArea
+from PyQt5.QtCore import pyqtSlot, Qt
 import threading
 import time
 import datetime
@@ -47,10 +47,13 @@ class Beamview(QMainWindow):
                 device.SetUserDefinedName(f'Camera {i}')
         
         # create grid for camera frames
-        dummy_widget = QWidget()
+        scroll_area = QScrollArea()
         self.grid = QGridLayout()
+        dummy_widget = QWidget()
         dummy_widget.setLayout(self.grid)
-        self.setCentralWidget(dummy_widget)
+        scroll_area.setWidget(dummy_widget)
+        scroll_area.setWidgetResizable(True)
+        self.setCentralWidget(scroll_area)
         self.adding_crosshair = False
         self.moving_crosshair = False
         self.deleting_crosshair = False
@@ -179,12 +182,14 @@ class Beamview(QMainWindow):
             frame.toggle_axes()
         
     def open_settings(self):
-        self.settings_window.show()
+        self.settings_window.setWindowState(Qt.WindowNoState)
+        self.settings_window.showNormal()
         self.settings_window.raise_()
         self.settings_window.activateWindow()
         
     def open_camera_list(self):
-        self.camera_list_window.show()
+        self.settings_window.setWindowState(Qt.WindowNoState)
+        self.camera_list_window.showNormal()
         self.camera_list_window.raise_()
         self.camera_list_window.activateWindow()
         

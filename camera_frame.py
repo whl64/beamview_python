@@ -136,7 +136,8 @@ class CameraFrame(QFrame):
         self.plot.showAxis('left', self.show_axes)
         self.tr = QTransform()
         
-        main_layout.addWidget(self.fig)
+        # main_layout.addStretch(1)
+        main_layout.addWidget(self.fig, stretch=1)
         self.setLayout(main_layout)
 
         self.plot_data = np.array([])
