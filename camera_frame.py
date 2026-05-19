@@ -8,9 +8,9 @@ import cmasher as cmr
 import datetime
 import pyqtgraph.exporters as exp
 
-from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton)
+from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QSizePolicy)
 from PyQt5.QtGui import QTransform
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QSize
 import pyqtgraph as pg
 
 import numpy as np
@@ -39,6 +39,7 @@ class CameraFrame(QFrame):
         self.pixel_calibration = 1
         self.cam = cam
         self.default_fig_width = 5
+        self.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         # set up plotting canvas
         
         main_layout = QVBoxLayout()
@@ -179,6 +180,9 @@ class CameraFrame(QFrame):
     def cmap(self, value):
         self.cbar.setColorMap(pg.colormap.getFromMatplotlib(value))
         self._cmap = value
+        
+    def sizeHint(self):
+        return QSize(500, 500)
         
     def change_calibration(self, use_calibration, calibration):
         self.use_calibration = use_calibration

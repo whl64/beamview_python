@@ -1,5 +1,6 @@
 import pyqtgraph as pg
 import pyqtgraph.exporters as exp
+from tifffile import tifffile
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QComboBox, QPushButton, QGroupBox,
                              QCheckBox, QLineEdit, QLabel, QFileDialog, QGridLayout)
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
@@ -234,6 +235,8 @@ class SettingsWindow(QWidget):
             filename += label_to_suffix[fil]
         if filename.endswith('.npz'):
             np.savez(filename, plot_data=self.active_frame.plot_data, pixel_calibration=self.calibration)
+        elif filename.endswith('.tiff'):
+            tifffile.imwrite(filename, self.active_frame.plot_data)
         else:
             exporter = exp.ImageExporter(self.active_frame.plot)
             exporter.export(filename)
